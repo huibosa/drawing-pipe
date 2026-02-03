@@ -1,7 +1,8 @@
-from shapes import Circle, Rect, Shape, Square
-from pipes import Pipe, CircleCircle, CircleSquare, RectSquare
+from pipes import CircleCircle, CircleSquare, Pipe, RectSquare
+
 from analysis import ProcessPipeline
-from visualization import plot_overlapping_pipes
+from shapes import Circle, Rect, Shape, Square
+from visualization import plot_process
 
 __all__ = [
     "Circle",
@@ -13,5 +14,5 @@ __all__ = [
     "CircleSquare",
     "RectSquare",
     "ProcessPipeline",
-    "plot_overlapping_pipes",
+    "plot_process",
 ]

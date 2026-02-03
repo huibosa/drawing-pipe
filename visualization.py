@@ -44,7 +44,34 @@ def create_pipe_patch(
     )
 
 
-def plot_overlapping_pipes(pipes: list["Pipe"]) -> None:
+def _get_common_limits(pipes: list["Pipe"], padding: float = 0.1) -> tuple:
+    """Calculate common x/y limits for all pipes to ensure uniform aspect ratio."""
+    all_verts = []
+    for pipe in pipes:
+        all_verts.append(get_vertices(pipe.outer))
+        all_verts.append(get_vertices(pipe.inner))
+
+    all_verts = np.vstack(all_verts)
+    xmin, xmax = all_verts[:, 0].min(), all_verts[:, 0].max()
+    ymin, ymax = all_verts[:, 1].min(), all_verts[:, 1].max()
+
+    width = xmax - xmin
+    height = ymax - ymin
+    max_dim = max(width, height)
+
+    cx = (xmin + xmax) / 2
+    cy = (ymin + ymax) / 2
+
+    padding_abs = max_dim * padding
+    return (
+        cx - max_dim / 2 - padding_abs,
+        cx + max_dim / 2 + padding_abs,
+        cy - max_dim / 2 - padding_abs,
+        cy + max_dim / 2 + padding_abs,
+    )
+
+
+def plot_process(pipes: list["Pipe"]) -> None:
     """
     Plot pipes.
     - If 1 item: Single plot, filled.
@@ -63,6 +90,8 @@ def plot_overlapping_pipes(pipes: list["Pipe"]) -> None:
     reductions = pipeline.area_reductions
     ecc_diffs = pipeline.eccentricity_diffs
 
+    common_limits = _get_common_limits(pipes, padding=0.1)
+
     def _draw_on_axis(
         ax,
         pipe_subset,
@@ -71,6 +100,7 @@ def plot_overlapping_pipes(pipes: list["Pipe"]) -> None:
         alphas,
         custom_styles=None,
         metrics_str="",
+        limits: tuple | None = None,
     ):
         for i, (pipe, label, color, alpha) in enumerate(
             zip(pipe_subset, label_subset, colors, alphas)
@@ -82,7 +112,11 @@ def plot_overlapping_pipes(pipes: list["Pipe"]) -> None:
             ax.add_patch(patch)
             ax.plot(pipe.inner.origin[0], pipe.inner.origin[1], "k+", alpha=0.3)
         ax.set_aspect("equal")
-        ax.autoscale_view()
+        if limits is not None:
+            ax.set_xlim(limits[0], limits[1])
+            ax.set_ylim(limits[2], limits[3])
+        else:
+            ax.autoscale_view()
         ax.grid(True, linestyle="--", alpha=0.5)
 
         if metrics_str:
@@ -113,6 +147,7 @@ def plot_overlapping_pipes(pipes: list["Pipe"]) -> None:
             base_alphas[:n_items],
             custom_styles=current_styles,
             metrics_str=metrics_info,
+            limits=common_limits,
         )
         title = "Pipe Comparison" if n_items == 2 else "Pipe Visualization"
         ax.set_title(title, fontsize=14)
@@ -143,6 +178,7 @@ def plot_overlapping_pipes(pipes: list["Pipe"]) -> None:
                 a_sub,
                 custom_styles=comparison_styles,
                 metrics_str=info,
+                limits=common_limits,
             )
             ax.set_title(f"Transition: {l_sub[0]} → {l_sub[1]}", fontsize=11)
 
