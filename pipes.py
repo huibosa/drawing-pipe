@@ -1,16 +1,16 @@
-from typing import Tuple
+from dataclasses import dataclass
 
 import numpy as np
 
 from shapes import Circle, Rect, Shape, Square
 
 
+@dataclass(frozen=True)
 class Pipe:
     """Base class for pipe geometries (outer shape with inner hole)."""
 
-    def __init__(self, outer: Shape, inner: Shape) -> None:
-        self.outer = outer
-        self.inner = inner
+    outer: Shape
+    inner: Shape
 
     @property
     def area(self) -> float:

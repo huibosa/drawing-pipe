@@ -1,43 +1,40 @@
-from typing import Tuple
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 
 import numpy as np
 
 
-class Shape:
+class Shape(ABC):
     """Abstract base class for geometric shapes."""
 
-    origin: Tuple[float, float]
+    origin: tuple[float, float]
 
     @property
+    @abstractmethod
     def area(self) -> float:
         """Calculate the area of the shape."""
-        raise NotImplementedError
+        ...
 
 
+@dataclass(frozen=True)
 class Circle(Shape):
     """Circle shape defined by origin and diameter."""
 
-    def __init__(self, origin: Tuple[float, float], diameter: float) -> None:
-        self.origin = origin
-        self.diameter = diameter
+    origin: tuple[float, float]
+    diameter: float
 
     @property
     def area(self) -> float:
         return (self.diameter / 2) ** 2 * np.pi
 
 
+@dataclass(frozen=True)
 class Square(Shape):
     """Square shape with optional corner fillets."""
 
-    def __init__(
-        self,
-        origin: Tuple[float, float],
-        side_length: float,
-        fillet_radius: float = 2.5,
-    ) -> None:
-        self.origin = origin
-        self.side_length = side_length
-        self.fillet_radius = fillet_radius
+    origin: tuple[float, float]
+    side_length: float
+    fillet_radius: float = field(default=2.5)
 
     @property
     def area(self) -> float:
@@ -47,20 +44,14 @@ class Square(Shape):
         return base_area - corner_correction
 
 
+@dataclass(frozen=True)
 class Rect(Shape):
     """Rectangle shape with optional corner fillets."""
 
-    def __init__(
-        self,
-        origin: Tuple[float, float],
-        length: float,
-        width: float,
-        fillet_radius: float = 2.5,
-    ) -> None:
-        self.origin = origin
-        self.length = length
-        self.width = width
-        self.fillet_radius = fillet_radius
+    origin: tuple[float, float]
+    length: float
+    width: float
+    fillet_radius: float = field(default=2.5)
 
     @property
     def area(self) -> float:
