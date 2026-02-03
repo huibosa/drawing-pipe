@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from shapes import Circle, Rect, Shape, Square
+from shapes import Circle, Ellipse, Rect, Shape, Square
 
 
 @dataclass(frozen=True)
@@ -41,4 +41,11 @@ class RectSquare(Pipe):
     """Pipe with rectangular outer and square inner."""
 
     def __init__(self, outer: Rect, inner: Square) -> None:
+        super().__init__(outer, inner)
+
+
+class EllipseSquare(Pipe):
+    """Pipe with elliptical outer and square inner."""
+
+    def __init__(self, outer: Ellipse, inner: Square) -> None:
         super().__init__(outer, inner)

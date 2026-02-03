@@ -59,3 +59,16 @@ class Rect(Shape):
         base_area = self.length * self.width
         corner_correction = (4 * r**2) - (np.pi * r**2)
         return base_area - corner_correction
+
+
+@dataclass(frozen=True)
+class Ellipse(Shape):
+    """Ellipse shape defined by origin, major axis, and minor axis."""
+
+    origin: tuple[float, float]
+    major_axis: float
+    minor_axis: float
+
+    @property
+    def area(self) -> float:
+        return np.pi * self.major_axis * self.minor_axis / 4
