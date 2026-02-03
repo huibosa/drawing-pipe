@@ -5,57 +5,10 @@ import matplotlib.path as mpath
 import matplotlib.pyplot as plt
 import numpy as np
 
-from shapes import Circle, Rect, Shape, Square
+from vertex_generators import get_vertices
 
 if TYPE_CHECKING:
     from pipes import Pipe
-
-
-def generate_rounded_rect_verts(
-    center: tuple[float, float], width: float, height: float, radius: float
-) -> np.ndarray:
-    """Generate vertices for a rounded rectangle."""
-    cx, cy = center
-    hw, hh = width / 2, height / 2
-    max_r = min(hw, hh)
-    r = min(radius, max_r)
-    arc_points = 15
-    theta = np.linspace(0, np.pi / 2, arc_points)
-    tr_x = (cx + hw - r) + r * np.cos(theta)
-    tr_y = (cy + hh - r) + r * np.sin(theta)
-    tl_x = (cx - hw + r) + r * np.cos(theta + np.pi / 2)
-    tl_y = (cy + hh - r) + r * np.sin(theta + np.pi / 2)
-    bl_x = (cx - hw + r) + r * np.cos(theta + np.pi)
-    bl_y = (cy - hh + r) + r * np.sin(theta + np.pi)
-    br_x = (cx + hw - r) + r * np.cos(theta + 3 * np.pi / 2)
-    br_y = (cy - hh + r) + r * np.sin(theta + 3 * np.pi / 2)
-    x = np.concatenate([tr_x, tl_x, bl_x, br_x])
-    y = np.concatenate([tr_y, tl_y, bl_y, br_y])
-    return np.column_stack([x, y])
-
-
-def get_vertices(shape: Shape, clockwise: bool = False) -> np.ndarray:
-    """Get vertices for any shape type."""
-    cx, cy = shape.origin
-    if isinstance(shape, Circle):
-        theta = np.linspace(0, 2 * np.pi, 100)
-        radius = shape.diameter / 2
-        x = cx + radius * np.cos(theta)
-        y = cy + radius * np.sin(theta)
-        verts = np.column_stack([x, y])
-    elif isinstance(shape, Square):
-        verts = generate_rounded_rect_verts(
-            shape.origin, shape.side_length, shape.side_length, shape.fillet_radius
-        )
-    elif isinstance(shape, Rect):
-        verts = generate_rounded_rect_verts(
-            shape.origin, shape.width, shape.length, shape.fillet_radius
-        )
-    else:
-        return np.array([])
-    if clockwise:
-        verts = verts[::-1]
-    return verts
 
 
 def create_pipe_patch(
