@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
 import numpy as np
+from scipy.interpolate import CubicSpline
 
 
 class Shape(ABC):
@@ -60,3 +61,58 @@ class Ellipse(Shape):
     @property
     def area(self) -> float:
         return np.pi * self.major_axis * self.minor_axis / 4
+
+
+@dataclass(frozen=True)
+class CubicSplineShape(Shape):
+    """Shape defined by cubic spline, symmetric about X and Y axes."""
+
+    origin: tuple[float, float]
+    v1: tuple[float, float]
+    v2: tuple[float, float]
+    v3: tuple[float, float]
+
+    @property
+    def vertices(
+        self,
+    ) -> tuple[
+        tuple[float, float],
+        tuple[float, float],
+        tuple[float, float],
+        tuple[float, float],
+        tuple[float, float],
+        tuple[float, float],
+        tuple[float, float],
+        tuple[float, float],
+    ]:
+        ox, oy = self.origin
+        return (
+            (self.v1[0] + ox, self.v1[1] + oy),
+            (self.v2[0] + ox, self.v2[1] + oy),
+            (self.v3[0] + ox, self.v3[1] + oy),
+            (self.v2[0] + ox, -self.v2[1] + oy),
+            (ox, -self.v1[1] + oy),
+            (-self.v2[0] + ox, -self.v2[1] + oy),
+            (-self.v3[0] + ox, oy),
+            (-self.v2[0] + ox, self.v2[1] + oy),
+        )
+
+    @property
+    def area(self) -> float:
+        x_fine, y_fine = self.get_spline_points(1000)
+        area = 0.5 * np.abs(np.sum(x_fine[:-1] * y_fine[1:] - x_fine[1:] * y_fine[:-1]))
+        return float(area)
+
+    def get_spline_points(self, num_points: int = 100) -> tuple[np.ndarray, np.ndarray]:
+        verts = self.vertices
+        n = len(verts)
+
+        t = np.arange(n + 1)
+        x = np.array([v[0] for v in verts] + [verts[0][0]])
+        y = np.array([v[1] for v in verts] + [verts[0][1]])
+
+        cs_x = CubicSpline(t, x, bc_type="periodic")
+        cs_y = CubicSpline(t, y, bc_type="periodic")
+
+        t_fine = np.linspace(0, n, num_points)
+        return cs_x(t_fine), cs_y(t_fine)

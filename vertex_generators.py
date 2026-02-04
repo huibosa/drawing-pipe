@@ -4,7 +4,7 @@ from typing import Any, Callable, Type
 
 import numpy as np
 
-from shapes import Circle, Ellipse, Rect, Shape, Square
+from shapes import Circle, CubicSplineShape, Ellipse, Rect, Shape, Square
 
 _vertex_generators: dict[Type, Callable[[Any], np.ndarray]] = {}
 
@@ -96,3 +96,10 @@ def _ellipse_vertices(shape: Ellipse) -> np.ndarray:
     x = cx + a * np.cos(theta)
     y = cy + b * np.sin(theta)
     return np.column_stack([x, y])
+
+
+@register_vertices(CubicSplineShape)
+def _cubic_spline_vertices(shape: CubicSplineShape) -> np.ndarray:
+    """Generate vertices for a cubic spline shape."""
+    x_fine, y_fine = shape.get_spline_points(100)
+    return np.column_stack([x_fine, y_fine])

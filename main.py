@@ -5,7 +5,7 @@ import visualization
 
 
 def main():
-    visualization.plot_process(fixtures.PROCESS_WITH_4_PASS)
+    visualization.plot_process(fixtures.PROCESS)
 
 
 if __name__ == "__main__":
