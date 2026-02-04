@@ -23,5 +23,5 @@ class ProcessAnalysis:
         shapes = self.shapes
         ret: list[float] = []
         for initial, final in zip(shapes[:-1], shapes[1:]):
-            ret.append(initial.eccentricity - final.eccentricity)
+            ret.append(final.eccentricity - initial.eccentricity)
         return ret
