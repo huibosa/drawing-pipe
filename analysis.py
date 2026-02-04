@@ -1,7 +1,7 @@
 from pipes import Pipe
 
 
-class ProcessPipeline:
+class ProcessAnalysis:
     """Analyzes a sequence of pipe shapes through a manufacturing process."""
 
     def __init__(self, *shapes: Pipe) -> None:

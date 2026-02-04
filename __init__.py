@@ -1,6 +1,6 @@
 from pipes import CircleCircle, CircleSquare, Pipe, RectSquare
 
-from analysis import ProcessPipeline
+from analysis import ProcessAnalysis
 from shapes import Circle, Rect, Shape, Square
 from visualization import plot_process
 

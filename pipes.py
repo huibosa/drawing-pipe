@@ -7,8 +7,6 @@ from shapes import Circle, Ellipse, Rect, Shape, Square
 
 @dataclass(frozen=True)
 class Pipe:
-    """Base class for pipe geometries (outer shape with inner hole)."""
-
     outer: Shape
     inner: Shape
 
@@ -24,28 +22,20 @@ class Pipe:
 
 
 class CircleCircle(Pipe):
-    """Pipe with circular outer and circular inner."""
-
     def __init__(self, outer: Circle, inner: Circle) -> None:
         super().__init__(outer, inner)
 
 
 class CircleSquare(Pipe):
-    """Pipe with circular outer and square inner."""
-
     def __init__(self, outer: Circle, inner: Square) -> None:
         super().__init__(outer, inner)
 
 
 class RectSquare(Pipe):
-    """Pipe with rectangular outer and square inner."""
-
     def __init__(self, outer: Rect, inner: Square) -> None:
         super().__init__(outer, inner)
 
 
 class EllipseSquare(Pipe):
-    """Pipe with elliptical outer and square inner."""
-
     def __init__(self, outer: Ellipse, inner: Square) -> None:
         super().__init__(outer, inner)

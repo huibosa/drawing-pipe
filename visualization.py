@@ -79,16 +79,16 @@ def plot_process(pipes: list["Pipe"]) -> None:
       The SECOND pipe is DASHED and HOLLOW.
       Metrics (Area Reduction, Eccentricity Diff) are shown in the xlabel.
     """
-    from analysis import ProcessPipeline
+    from analysis import ProcessAnalysis
 
     n_items = len(pipes)
     labels = [f"Pipe {i + 1}" for i in range(n_items)]
     base_colors = ["#B0C4DE", "#B0C4DE", "#B0C4DE", "#B0C4DE", "#B0C4DE"]
     base_alphas = [0.4, 0.5, 0.6, 0.7, 0.8]
 
-    pipeline = ProcessPipeline(*pipes)
-    reductions = pipeline.area_reductions
-    ecc_diffs = pipeline.eccentricity_diffs
+    analysis = ProcessAnalysis(*pipes)
+    reductions = analysis.area_reductions
+    ecc_diffs = analysis.eccentricity_diffs
 
     common_limits = _get_common_limits(pipes, padding=0.1)
 

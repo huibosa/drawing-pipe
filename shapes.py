@@ -5,21 +5,15 @@ import numpy as np
 
 
 class Shape(ABC):
-    """Abstract base class for geometric shapes."""
-
     origin: tuple[float, float]
 
     @property
     @abstractmethod
-    def area(self) -> float:
-        """Calculate the area of the shape."""
-        ...
+    def area(self) -> float: ...
 
 
 @dataclass(frozen=True)
 class Circle(Shape):
-    """Circle shape defined by origin and diameter."""
-
     origin: tuple[float, float]
     diameter: float
 
@@ -30,8 +24,6 @@ class Circle(Shape):
 
 @dataclass(frozen=True)
 class Square(Shape):
-    """Square shape with optional corner fillets."""
-
     origin: tuple[float, float]
     side_length: float
     fillet_radius: float = field(default=2.5)
@@ -46,8 +38,6 @@ class Square(Shape):
 
 @dataclass(frozen=True)
 class Rect(Shape):
-    """Rectangle shape with optional corner fillets."""
-
     origin: tuple[float, float]
     length: float
     width: float
@@ -63,8 +53,6 @@ class Rect(Shape):
 
 @dataclass(frozen=True)
 class Ellipse(Shape):
-    """Ellipse shape defined by origin, major axis, and minor axis."""
-
     origin: tuple[float, float]
     major_axis: float
     minor_axis: float
