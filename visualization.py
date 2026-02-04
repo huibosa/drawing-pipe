@@ -5,6 +5,7 @@ import matplotlib.path as mpath
 import matplotlib.pyplot as plt
 import numpy as np
 
+from process import ProcessAnalysis
 from vertex_generators import get_vertices
 
 if TYPE_CHECKING:
@@ -79,16 +80,15 @@ def plot_process(pipes: list["Pipe"]) -> None:
       The SECOND pipe is DASHED and HOLLOW.
       Metrics (Area Reduction, Eccentricity Diff) are shown in the xlabel.
     """
-    from analysis import ProcessAnalysis
 
     n_items = len(pipes)
     labels = [f"Pipe {i + 1}" for i in range(n_items)]
     base_colors = ["#B0C4DE", "#B0C4DE", "#B0C4DE", "#B0C4DE", "#B0C4DE"]
     base_alphas = [0.4, 0.5, 0.6, 0.7, 0.8]
 
-    analysis = ProcessAnalysis(*pipes)
-    reductions = analysis.area_reductions
-    ecc_diffs = analysis.eccentricity_diffs
+    process = ProcessAnalysis(pipes)
+    reductions = process.area_reductions
+    ecc_diffs = process.eccentricity_diffs
 
     common_limits = _get_common_limits(pipes, padding=0.1)
 
