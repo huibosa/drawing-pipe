@@ -1,5 +1,12 @@
 from pipes import Pipe
 
+import numpy as np
+
+
+class Process:
+    def __init__(self, pipes: list[Pipe]) -> None:
+        self.pipes = pipes
+
 
 class ProcessAnalysis:
     """Analyzes a sequence of pipe shapes through a manufacturing process."""
@@ -24,4 +31,15 @@ class ProcessAnalysis:
         ret: list[float] = []
         for initial, final in zip(pipes[:-1], pipes[1:]):
             ret.append(final.eccentricity - initial.eccentricity)
+        return ret
+
+    @property
+    def vertex_distances(self) -> list[tuple[float, ...]]:
+        pipes = self.pipes
+        ret: list[tuple[float, ...]] = []
+        for initial, final in zip(pipes[:-1], pipes[1:]):
+            tmp1 = np.asarray(initial.vertex_distances)
+            tmp2 = np.asarray(final.vertex_distances)
+
+            ret.append(tuple(tmp1 - tmp2))
         return ret

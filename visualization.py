@@ -5,6 +5,7 @@ import matplotlib.path as mpath
 import matplotlib.pyplot as plt
 import numpy as np
 
+from fixtures import PROCESS
 from process import ProcessAnalysis
 from vertex_generators import get_vertices
 
@@ -184,3 +185,7 @@ def plot_process(pipes: list["Pipe"]) -> None:
 
     plt.tight_layout()
     plt.show()
+
+
+if __name__ == "__main__":
+    plot_process(PROCESS)
