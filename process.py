@@ -34,9 +34,12 @@ class ProcessAnalysis:
         return ret
 
     @property
-    def vertex_distances(self) -> np.ndarray:
+    def thickness_reductions(self) -> np.ndarray:
         pipes = self.pipes
         ret: list[np.ndarray] = []
         for initial, final in zip(pipes[:-1], pipes[1:]):
-            ret.append(initial.vertex_distances - final.vertex_distances)
+            ret.append(
+                (initial.vertex_distances - final.vertex_distances)
+                / initial.vertex_distances
+            )
         return np.array(ret)

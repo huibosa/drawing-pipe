@@ -1,5 +1,3 @@
-from typing import TYPE_CHECKING
-
 import matplotlib.patches as patches
 import matplotlib.path as mpath
 import matplotlib.pyplot as plt
@@ -7,12 +5,11 @@ import numpy as np
 
 np.set_printoptions(precision=2, suppress=True)
 
+from pipes import Pipe, SplineSpline
+
 from fixtures import PROCESS
 from process import ProcessAnalysis
 from vertex_generators import get_vertices
-
-if TYPE_CHECKING:
-    from pipes import Pipe
 
 
 def create_pipe_patch(
@@ -92,7 +89,7 @@ def plot_process(pipes: list["Pipe"]) -> None:
     process = ProcessAnalysis(pipes)
     reductions = process.area_reductions
     ecc_diffs = process.eccentricity_diffs
-    vertex_distances = process.vertex_distances
+    thickness_reductions = process.thickness_reductions
 
     common_limits = _get_common_limits(pipes, padding=0.1)
 
@@ -105,6 +102,8 @@ def plot_process(pipes: list["Pipe"]) -> None:
         custom_styles=None,
         metrics_str="",
         limits: tuple | None = None,
+        area_reduction: float | None = None,
+        ecc_diff: float | None = None,
     ):
         for i, (pipe, label, color, alpha) in enumerate(
             zip(pipe_subset, label_subset, colors, alphas)
@@ -112,9 +111,31 @@ def plot_process(pipes: list["Pipe"]) -> None:
             style = {"fill": True, "linestyle": "solid"}
             if custom_styles and i < len(custom_styles) and custom_styles[i]:
                 style.update(custom_styles[i])
-            patch = create_pipe_patch(pipe, color, alpha, label, **style)
+            patch = create_pipe_patch(pipe, color, alpha, "_nolegend_", **style)
             ax.add_patch(patch)
             ax.plot(pipe.inner.origin[0], pipe.inner.origin[1], "k+", alpha=0.3)
+
+            if isinstance(pipe, SplineSpline):
+                outer_verts = np.array(pipe.outer.vertices[:5])
+                inner_verts = np.array(pipe.inner.vertices[:5])
+                ax.scatter(
+                    outer_verts[:, 0],
+                    outer_verts[:, 1],
+                    c="blue",
+                    s=40,
+                    marker="o",
+                    zorder=5,
+                    label="_nolegend_",
+                )
+                ax.scatter(
+                    inner_verts[:, 0],
+                    inner_verts[:, 1],
+                    c="red",
+                    s=40,
+                    marker="o",
+                    zorder=5,
+                    label="_nolegend_",
+                )
         ax.set_aspect("equal")
         if limits is not None:
             ax.set_xlim(limits[0], limits[1])
@@ -129,7 +150,32 @@ def plot_process(pipes: list["Pipe"]) -> None:
             ax.set_xlabel("X Axis")
 
         ax.set_ylabel("Y Axis")
-        ax.legend(loc="upper right")
+
+        custom_legend = []
+        if area_reduction is not None:
+            custom_legend.append(
+                plt.Line2D(
+                    [],
+                    [],
+                    color="black",
+                    label=f"Area Reduction: {area_reduction * 100:.1f}%",
+                )
+            )
+        if ecc_diff is not None:
+            custom_legend.append(
+                plt.Line2D(
+                    [], [], color="black", label=f"Eccentricity Diff: {ecc_diff:.2f}"
+                )
+            )
+        if custom_legend:
+            handles, labels_list = ax.get_legend_handles_labels()
+            ax.legend(
+                handles=handles + custom_legend,
+                labels=labels_list + [l.get_label() for l in custom_legend],
+                loc="upper right",
+            )
+        else:
+            ax.legend(loc="upper right")
 
     comparison_styles = [{}, {"fill": False, "linestyle": "--"}]
 
@@ -140,8 +186,21 @@ def plot_process(pipes: list["Pipe"]) -> None:
 
         if n_items == 2:
             current_styles = comparison_styles
-            if reductions:
-                metrics_info = f"Area Red: {reductions[0] * 100:.1f}% | Ecc Diff: {ecc_diffs[0]:.2f}\n{vertex_distances[0]}"
+
+        _draw_on_axis(
+            ax,
+            pipes,
+            labels,
+            base_colors[:n_items],
+            base_alphas[:n_items],
+            custom_styles=current_styles,
+            metrics_str=str(thickness_reductions[0])
+            if len(thickness_reductions) > 0
+            else "",
+            limits=common_limits,
+            area_reduction=reductions[0] if reductions else None,
+            ecc_diff=ecc_diffs[0] if ecc_diffs else None,
+        )
 
         _draw_on_axis(
             ax,
@@ -170,8 +229,6 @@ def plot_process(pipes: list["Pipe"]) -> None:
             c_sub = [base_colors[idx1 % 5], base_colors[idx2 % 5]]
             a_sub = [base_alphas[idx1 % 5], base_alphas[idx2 % 5]]
 
-            info = f"Area Red: {reductions[i] * 100:.1f}% | Ecc Diff: {ecc_diffs[i]:.2f}\n{vertex_distances[i]}"
-
             _draw_on_axis(
                 ax,
                 p_sub,
@@ -179,8 +236,12 @@ def plot_process(pipes: list["Pipe"]) -> None:
                 c_sub,
                 a_sub,
                 custom_styles=comparison_styles,
-                metrics_str=info,
+                metrics_str=str(thickness_reductions[i])
+                if len(thickness_reductions) > 0
+                else "",
                 limits=common_limits,
+                area_reduction=reductions[i] if reductions else None,
+                ecc_diff=ecc_diffs[i] if ecc_diffs else None,
             )
             ax.set_title(f"Transition: {l_sub[0]} → {l_sub[1]}", fontsize=11)
 
