@@ -151,31 +151,22 @@ def plot_process(pipes: list["Pipe"]) -> None:
 
         ax.set_ylabel("Y Axis")
 
-        custom_legend = []
-        if area_reduction is not None:
-            custom_legend.append(
-                plt.Line2D(
-                    [],
-                    [],
-                    color="black",
-                    label=f"Area Reduction: {area_reduction * 100:.1f}%",
-                )
+        if area_reduction is not None or ecc_diff is not None:
+            metrics_text = ""
+            if area_reduction is not None:
+                metrics_text += f"Area Reduction: {area_reduction * 100:.1f}%\n"
+            if ecc_diff is not None:
+                metrics_text += f"Eccentricity Diff: {ecc_diff:.2f}"
+            ax.text(
+                0.98,
+                0.98,
+                metrics_text.strip(),
+                transform=ax.transAxes,
+                fontsize=9,
+                verticalalignment="top",
+                horizontalalignment="right",
+                bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
             )
-        if ecc_diff is not None:
-            custom_legend.append(
-                plt.Line2D(
-                    [], [], color="black", label=f"Eccentricity Diff: {ecc_diff:.2f}"
-                )
-            )
-        if custom_legend:
-            handles, labels_list = ax.get_legend_handles_labels()
-            ax.legend(
-                handles=handles + custom_legend,
-                labels=labels_list + [l.get_label() for l in custom_legend],
-                loc="upper right",
-            )
-        else:
-            ax.legend(loc="upper right")
 
     comparison_styles = [{}, {"fill": False, "linestyle": "--"}]
 
