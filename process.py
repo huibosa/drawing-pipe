@@ -38,8 +38,5 @@ class ProcessAnalysis:
         pipes = self.pipes
         ret: list[np.ndarray] = []
         for initial, final in zip(pipes[:-1], pipes[1:]):
-            ret.append(
-                (initial.vertex_distances - final.vertex_distances)
-                / initial.vertex_distances
-            )
+            ret.append((initial.thickness - final.thickness) / initial.thickness)
         return np.array(ret)

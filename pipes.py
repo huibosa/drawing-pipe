@@ -26,7 +26,7 @@ class CircleCircle(Pipe):
         super().__init__(outer, inner)
 
     @property
-    def vertex_distances(self) -> np.ndarray:
+    def thickness(self) -> np.ndarray:
         thickness = (self.outer.diameter - self.inner.diameter) / 2.0
 
         return np.array((thickness,) * 5)
@@ -42,7 +42,7 @@ class RectSquare(Pipe):
         super().__init__(outer, inner)
 
     @property
-    def vertex_distances(self) -> np.ndarray:
+    def thickness(self) -> np.ndarray:
         ox_o, oy_o = self.outer.origin
         r_o = self.outer.fillet_radius
         l_o, w_o = self.outer.length, self.outer.width
@@ -67,12 +67,18 @@ class RectSquare(Pipe):
             (ox_i, oy_i - s_i / 2),
         ]
 
-        return np.array(
-            [
-                float(np.linalg.norm(np.array(o) - np.array(i)))
-                for o, i in zip(outer_pts, inner_pts)
-            ]
-        )
+        distances = []
+        for i, (o, iv) in enumerate(zip(outer_pts, inner_pts)):
+            ox, oy = o
+            ix, iy = iv
+            if i == 0 or i == 4:
+                distances.append(abs(oy - iy))
+            elif i == 2:
+                distances.append(abs(ox - ix))
+            else:
+                distances.append(float(np.linalg.norm(np.array(o) - np.array(iv))))
+
+        return np.array(distances)
 
 
 class EllipseSquare(Pipe):
@@ -85,12 +91,17 @@ class SplineSpline(Pipe):
         super().__init__(outer, inner)
 
     @property
-    def vertex_distances(self) -> np.ndarray:
+    def thickness(self) -> np.ndarray:
         outer_verts = self.outer.vertices[:5]
         inner_verts = self.inner.vertices[:5]
-        return np.array(
-            [
-                float(np.linalg.norm(np.array(ov) - np.array(iv)))
-                for ov, iv in zip(outer_verts, inner_verts)
-            ]
-        )
+        distances = []
+        for i, (ov, iv) in enumerate(zip(outer_verts, inner_verts)):
+            ox, oy = ov
+            ix, iy = iv
+            if i == 0 or i == 4:
+                distances.append(abs(oy - iy))
+            elif i == 2:
+                distances.append(abs(ox - ix))
+            else:
+                distances.append(float(np.linalg.norm(np.array(ov) - np.array(iv))))
+        return np.array(distances)
