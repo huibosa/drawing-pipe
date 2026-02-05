@@ -34,12 +34,9 @@ class ProcessAnalysis:
         return ret
 
     @property
-    def vertex_distances(self) -> list[tuple[float, ...]]:
+    def vertex_distances(self) -> np.ndarray:
         pipes = self.pipes
-        ret: list[tuple[float, ...]] = []
+        ret: list[np.ndarray] = []
         for initial, final in zip(pipes[:-1], pipes[1:]):
-            tmp1 = np.asarray(initial.vertex_distances)
-            tmp2 = np.asarray(final.vertex_distances)
-
-            ret.append(tuple(tmp1 - tmp2))
-        return ret
+            ret.append(initial.vertex_distances - final.vertex_distances)
+        return np.array(ret)

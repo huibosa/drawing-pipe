@@ -26,10 +26,10 @@ class CircleCircle(Pipe):
         super().__init__(outer, inner)
 
     @property
-    def vertex_distances(self) -> tuple[float, ...]:
+    def vertex_distances(self) -> np.ndarray:
         thickness = (self.outer.diameter - self.inner.diameter) / 2.0
 
-        return (thickness,) * 5
+        return np.array((thickness,) * 5)
 
 
 class CircleSquare(Pipe):
@@ -42,7 +42,7 @@ class RectSquare(Pipe):
         super().__init__(outer, inner)
 
     @property
-    def vertex_distances(self) -> tuple[float, float, float, float, float]:
+    def vertex_distances(self) -> np.ndarray:
         ox_o, oy_o = self.outer.origin
         r_o = self.outer.fillet_radius
         l_o, w_o = self.outer.length, self.outer.width
@@ -67,9 +67,11 @@ class RectSquare(Pipe):
             (ox_i, oy_i - s_i / 2),
         ]
 
-        return tuple(
-            float(np.linalg.norm(np.array(o) - np.array(i)))
-            for o, i in zip(outer_pts, inner_pts)
+        return np.array(
+            [
+                float(np.linalg.norm(np.array(o) - np.array(i)))
+                for o, i in zip(outer_pts, inner_pts)
+            ]
         )
 
 
@@ -83,10 +85,12 @@ class SplineSpline(Pipe):
         super().__init__(outer, inner)
 
     @property
-    def vertex_distances(self) -> tuple[float, float, float, float, float]:
+    def vertex_distances(self) -> np.ndarray:
         outer_verts = self.outer.vertices[:5]
         inner_verts = self.inner.vertices[:5]
-        return tuple(
-            float(np.linalg.norm(np.array(ov) - np.array(iv)))
-            for ov, iv in zip(outer_verts, inner_verts)
+        return np.array(
+            [
+                float(np.linalg.norm(np.array(ov) - np.array(iv)))
+                for ov, iv in zip(outer_verts, inner_verts)
+            ]
         )
