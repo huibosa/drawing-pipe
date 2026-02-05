@@ -5,11 +5,74 @@ import numpy as np
 
 np.set_printoptions(precision=2, suppress=True)
 
-from pipes import Pipe, SplineSpline
+from pipes import CircleCircle, Pipe, RectSquare, SplineSpline
 
 from fixtures import PROCESS
 from process import ProcessAnalysis
+from shapes import Circle, Rect, Square
 from vertex_generators import get_vertices
+
+
+def _get_circle_points(circle: Circle) -> tuple[np.ndarray, np.ndarray]:
+    """Get 5 points on circle at angles: 90°, 45°, 0°, -45°, -90°."""
+    ox, oy = circle.origin
+    radius = circle.diameter / 2
+    angles = np.array([90, 45, 0, -45, -90]) * np.pi / 180
+    x_coords = ox + radius * np.cos(angles)
+    y_coords = oy + radius * np.sin(angles)
+    return x_coords, y_coords
+
+
+def _get_rect_points(shape: Rect | Square) -> tuple[np.ndarray, np.ndarray]:
+    """Get 5 key points: top-center, top-right-fillet-arc-center, right-center, bottom-right-fillet-arc-center, bottom-center."""
+    ox, oy = shape.origin
+
+    if isinstance(shape, Rect):
+        length = shape.length
+        width = shape.width
+        r = shape.fillet_radius
+        arc_offset = r / np.sqrt(2)
+        x_coords = np.array(
+            [
+                ox,
+                ox + width / 2 - r + arc_offset,
+                ox + width / 2,
+                ox + width / 2 - r + arc_offset,
+                ox,
+            ]
+        )
+        y_coords = np.array(
+            [
+                oy + length / 2,
+                oy + length / 2 - r + arc_offset,
+                oy,
+                oy - length / 2 + r - arc_offset,
+                oy - length / 2,
+            ]
+        )
+    else:
+        side = shape.side_length
+        r = shape.fillet_radius
+        arc_offset = r / np.sqrt(2)
+        x_coords = np.array(
+            [
+                ox,
+                ox + side / 2 - r + arc_offset,
+                ox + side / 2,
+                ox + side / 2 - r + arc_offset,
+                ox,
+            ]
+        )
+        y_coords = np.array(
+            [
+                oy + side / 2,
+                oy + side / 2 - r + arc_offset,
+                oy,
+                oy - side / 2 + r - arc_offset,
+                oy - side / 2,
+            ]
+        )
+    return x_coords, y_coords
 
 
 def create_pipe_patch(
@@ -136,6 +199,54 @@ def plot_process(pipes: list["Pipe"]) -> None:
                     zorder=5,
                     label="_nolegend_",
                 )
+
+            if isinstance(pipe, CircleCircle):
+                if isinstance(pipe.outer, Circle) and isinstance(pipe.inner, Circle):
+                    outer_x, outer_y = _get_circle_points(pipe.outer)
+                    inner_x, inner_y = _get_circle_points(pipe.inner)
+                    ax.scatter(
+                        outer_x,
+                        outer_y,
+                        c="blue",
+                        s=40,
+                        marker="o",
+                        zorder=5,
+                        label="_nolegend_",
+                    )
+                    ax.scatter(
+                        inner_x,
+                        inner_y,
+                        c="red",
+                        s=40,
+                        marker="o",
+                        zorder=5,
+                        label="_nolegend_",
+                    )
+
+            if isinstance(pipe, RectSquare):
+                if isinstance(pipe.outer, (Rect, Square)) and isinstance(
+                    pipe.inner, (Rect, Square)
+                ):
+                    outer_x, outer_y = _get_rect_points(pipe.outer)
+                    inner_x, inner_y = _get_rect_points(pipe.inner)
+                    ax.scatter(
+                        outer_x,
+                        outer_y,
+                        c="blue",
+                        s=40,
+                        marker="o",
+                        zorder=5,
+                        label="_nolegend_",
+                    )
+                    ax.scatter(
+                        inner_x,
+                        inner_y,
+                        c="red",
+                        s=40,
+                        marker="o",
+                        zorder=5,
+                        label="_nolegend_",
+                    )
         ax.set_aspect("equal")
         if limits is not None:
             ax.set_xlim(limits[0], limits[1])
@@ -144,12 +255,7 @@ def plot_process(pipes: list["Pipe"]) -> None:
             ax.autoscale_view()
         ax.grid(True, linestyle="--", alpha=0.5)
 
-        if metrics_str:
-            ax.set_xlabel(metrics_str, fontsize=10, fontweight="bold", color="darkblue")
-        else:
-            ax.set_xlabel("X Axis")
-
-        ax.set_ylabel("Y Axis")
+        ax.set_xlabel(metrics_str, fontsize=10, fontweight="bold", color="darkblue")
 
         if area_reduction is not None or ecc_diff is not None:
             metrics_text = ""
