@@ -5,6 +5,8 @@ import matplotlib.path as mpath
 import matplotlib.pyplot as plt
 import numpy as np
 
+np.set_printoptions(precision=2, suppress=True)
+
 from fixtures import PROCESS
 from process import ProcessAnalysis
 from vertex_generators import get_vertices
@@ -90,6 +92,7 @@ def plot_process(pipes: list["Pipe"]) -> None:
     process = ProcessAnalysis(pipes)
     reductions = process.area_reductions
     ecc_diffs = process.eccentricity_diffs
+    vertex_distances = process.vertex_distances
 
     common_limits = _get_common_limits(pipes, padding=0.1)
 
@@ -138,7 +141,7 @@ def plot_process(pipes: list["Pipe"]) -> None:
         if n_items == 2:
             current_styles = comparison_styles
             if reductions:
-                metrics_info = f"Area Red: {reductions[0] * 100:.1f}% | Ecc Diff: {ecc_diffs[0]:.2f}"
+                metrics_info = f"Area Red: {reductions[0] * 100:.1f}% | Ecc Diff: {ecc_diffs[0]:.2f}\n{vertex_distances[0]}"
 
         _draw_on_axis(
             ax,
@@ -167,9 +170,7 @@ def plot_process(pipes: list["Pipe"]) -> None:
             c_sub = [base_colors[idx1 % 5], base_colors[idx2 % 5]]
             a_sub = [base_alphas[idx1 % 5], base_alphas[idx2 % 5]]
 
-            info = (
-                f"Area Red: {reductions[i] * 100:.1f}% | Ecc Diff: {ecc_diffs[i]:.2f}"
-            )
+            info = f"Area Red: {reductions[i] * 100:.1f}% | Ecc Diff: {ecc_diffs[i]:.2f}\n{vertex_distances[i]}"
 
             _draw_on_axis(
                 ax,
