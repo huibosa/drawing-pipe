@@ -1,11 +1,11 @@
 """Example usage of the drawing pipe library."""
 
-import fixtures
-from process import ProcessAnalysis
+import visualization
+from fixtures import PROCESS
 
 
 def main():
-    print(ProcessAnalysis(fixtures.PROCESS).thickness_reductions)
+    visualization.plot_process(PROCESS)
 
 
 if __name__ == "__main__":
