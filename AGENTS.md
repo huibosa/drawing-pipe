@@ -1,5 +1,9 @@
 # AGENTS.md - Drawing Pipe Project Guidelines
 
+## NOTE:
+- Do NOT create `.venv` or install packages via `pip` to the current folder
+- Do NOT Add x and y axis label to any matplotlib axes
+
 ## Project Overview
 Geometric library for calculating pipe properties (area, eccentricity, vertex distances, thickness) using shapes (Circle, Rect, Square, Ellipse, CubicSpline).
 
@@ -8,7 +12,6 @@ Geometric library for calculating pipe properties (area, eccentricity, vertex di
 - **Package Manager**: `uv` (preferred over pip)
 - **Linter/Formatter**: `ruff`
 - **Dependencies**: `numpy`, `scipy`
-- **Note**: Do NOT create `.venv` or install packages via `pip` to the current folder
 
 ## Lint, and Test Commands
 

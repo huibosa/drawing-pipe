@@ -10,6 +10,8 @@ from visualization.layout import get_common_limits
 from visualization.markers import plot_pipe_markers
 from visualization.patch_factory import create_pipe_patch
 
+VERTEX_NAMES = ("Tp", "TpRt", "Rt", "BtRt", "Bt")
+
 
 def _draw_on_axis(
     ax,
@@ -18,7 +20,7 @@ def _draw_on_axis(
     colors,
     alphas,
     custom_styles=None,
-    metrics_str="",
+    metrics: tuple[float, float, float, float, float] | None = None,
     limits: tuple | None = None,
     area_reduction: float | None = None,
     ecc_diff: float | None = None,
@@ -43,24 +45,32 @@ def _draw_on_axis(
         ax.autoscale_view()
     ax.grid(True, linestyle=constants.GRID_LINESTYLE, alpha=constants.GRID_ALPHA)
 
-    if metrics_str:
-        ax.set_xlabel(
-            metrics_str,
-            fontsize=constants.XLABEL_FONTSIZE,
-            fontweight="bold",
-            color="darkblue",
+    if metrics is not None:
+        metrics_text = "\n".join(
+            f"{name}: {value * 100:.1f}%" for name, value in zip(VERTEX_NAMES, metrics)
         )
-    else:
-        ax.set_xlabel("X Axis")
-
-    ax.set_ylabel("Y Axis")
+        ax.text(
+            constants.METRICS_TEXT_LEFT_X,
+            constants.METRICS_TEXT_Y,
+            metrics_text,
+            transform=ax.transAxes,
+            fontsize=constants.METRICS_FONTSIZE,
+            color="black",
+            verticalalignment="top",
+            horizontalalignment="right",
+            bbox=dict(
+                boxstyle=constants.METRICS_BOX_STYLE,
+                facecolor=constants.METRICS_BOX_FACECOLOR,
+                alpha=constants.METRICS_BOX_ALPHA,
+            ),
+        )
 
     if area_reduction is not None or ecc_diff is not None:
         metrics_text = ""
         if area_reduction is not None:
-            metrics_text += f"Area Reduction: {area_reduction * 100:.1f}%\n"
+            metrics_text += f"Area: {area_reduction * 100:.1f}%\n"
         if ecc_diff is not None:
-            metrics_text += f"Eccentricity Difference: {ecc_diff:.2f}"
+            metrics_text += f"Ecc: {ecc_diff:.2f}"
         ax.text(
             constants.METRICS_TEXT_X,
             constants.METRICS_TEXT_Y,
@@ -101,7 +111,6 @@ def plot_process(pipes: list[Pipe]) -> None:
     if n_items <= 2:
         fig, ax = plt.subplots(figsize=constants.SINGLE_FIGURE_SIZE)
         current_styles = []
-        metrics_info = ""
 
         if n_items == 2:
             current_styles = comparison_styles
@@ -113,9 +122,9 @@ def plot_process(pipes: list[Pipe]) -> None:
             constants.BASE_COLORS[:n_items],
             constants.BASE_ALPHAS[:n_items],
             custom_styles=current_styles,
-            metrics_str=str(thickness_reductions[0])
+            metrics=tuple(thickness_reductions[0])
             if len(thickness_reductions) > 0
-            else "",
+            else None,
             limits=common_limits,
             area_reduction=reductions[0] if reductions else None,
             ecc_diff=ecc_diffs[0] if ecc_diffs else None,
@@ -128,7 +137,6 @@ def plot_process(pipes: list[Pipe]) -> None:
             constants.BASE_COLORS[:n_items],
             constants.BASE_ALPHAS[:n_items],
             custom_styles=current_styles,
-            metrics_str=metrics_info,
             limits=common_limits,
         )
         title = "Pipe Comparison" if n_items == 2 else "Pipe Visualization"
@@ -159,9 +167,9 @@ def plot_process(pipes: list[Pipe]) -> None:
                 c_sub,
                 a_sub,
                 custom_styles=comparison_styles,
-                metrics_str=str(thickness_reductions[i])
+                metrics=tuple(thickness_reductions[i])
                 if len(thickness_reductions) > 0
-                else "",
+                else None,
                 limits=common_limits,
                 area_reduction=reductions[i] if reductions else None,
                 ecc_diff=ecc_diffs[i] if ecc_diffs else None,
