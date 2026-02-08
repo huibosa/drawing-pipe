@@ -4,7 +4,7 @@ from typing import Any, Callable, Type
 
 import numpy as np
 
-from shapes import Circle, CubicSplineShape, Ellipse, Rect, Shape, Square
+from shapes import Circle, CubicSplineShape, Ellipse, Rect, Shape
 
 _vertex_generators: dict[Type, Callable[[Any], np.ndarray]] = {}
 
@@ -68,14 +68,6 @@ def _circle_vertices(shape: Circle) -> np.ndarray:
     x = cx + radius * np.cos(theta)
     y = cy + radius * np.sin(theta)
     return np.column_stack([x, y])
-
-
-@register_vertices(Square)
-def _square_vertices(shape: Square) -> np.ndarray:
-    """Generate vertices for a square with optional corner fillets."""
-    return generate_rounded_rect_verts(
-        shape.origin, shape.side_length, shape.side_length, shape.fillet_radius
-    )
 
 
 @register_vertices(Rect)

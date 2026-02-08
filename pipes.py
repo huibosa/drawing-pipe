@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from shapes import Circle, CubicSplineShape, Ellipse, Rect, Shape, Square
+from shapes import Circle, CubicSplineShape, Ellipse, Rect, Shape
 
 
 @dataclass(frozen=True)
@@ -33,12 +33,17 @@ class CircleCircle(Pipe):
 
 
 class CircleSquare(Pipe):
-    def __init__(self, outer: Circle, inner: Square) -> None:
+    def __init__(self, outer: Circle, inner: Rect) -> None:
+        super().__init__(outer, inner)
+
+
+class EllipseSquare(Pipe):
+    def __init__(self, outer: Ellipse, inner: Rect) -> None:
         super().__init__(outer, inner)
 
 
 class RectSquare(Pipe):
-    def __init__(self, outer: Rect, inner: Square) -> None:
+    def __init__(self, outer: Rect, inner: Rect) -> None:
         super().__init__(outer, inner)
 
     @property
@@ -49,7 +54,7 @@ class RectSquare(Pipe):
 
         ox_i, oy_i = self.inner.origin
         r_i = self.inner.fillet_radius
-        s_i = self.inner.side_length
+        l_i, w_i = self.inner.length, self.inner.width
 
         outer_pts = [
             (ox_o, oy_o + l_o / 2),
@@ -60,11 +65,11 @@ class RectSquare(Pipe):
         ]
 
         inner_pts = [
-            (ox_i, oy_i + s_i / 2),
-            (ox_i - s_i / 2 + r_i, oy_i + s_i / 2 - r_i),
-            (ox_i - s_i / 2, oy_i),
-            (ox_i - s_i / 2 + r_i, oy_i - s_i / 2 + r_i),
-            (ox_i, oy_i - s_i / 2),
+            (ox_i, oy_i + l_i / 2),
+            (ox_i - w_i / 2 + r_i, oy_i + l_i / 2 - r_i),
+            (ox_i - w_i / 2, oy_i),
+            (ox_i - w_i / 2 + r_i, oy_i - l_i / 2 + r_i),
+            (ox_i, oy_i - l_i / 2),
         ]
 
         distances = []
@@ -79,11 +84,6 @@ class RectSquare(Pipe):
                 distances.append(float(np.linalg.norm(np.array(o) - np.array(iv))))
 
         return np.array(distances)
-
-
-class EllipseSquare(Pipe):
-    def __init__(self, outer: Ellipse, inner: Square) -> None:
-        super().__init__(outer, inner)
 
 
 class SplineSpline(Pipe):

@@ -24,20 +24,6 @@ class Circle(Shape):
 
 
 @dataclass(frozen=True)
-class Square(Shape):
-    origin: tuple[float, float]
-    side_length: float
-    fillet_radius: float = field(default=2.5)
-
-    @property
-    def area(self) -> float:
-        r = self.fillet_radius
-        base_area = self.side_length**2
-        corner_correction = (4 * r**2) - (np.pi * r**2)
-        return base_area - corner_correction
-
-
-@dataclass(frozen=True)
 class Rect(Shape):
     origin: tuple[float, float]
     length: float
