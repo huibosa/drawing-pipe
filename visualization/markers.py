@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pipes import CircleCircle, Pipe, RectSquare, SplineSpline
+from pipes import CircleCircle, Pipe, RectRect, SplineSpline
 
 import numpy as np
 
@@ -10,7 +10,7 @@ from visualization.point_generators import get_circle_points, get_rect_points
 
 
 def plot_pipe_markers(ax, pipe: Pipe) -> None:
-    """Plot marker dots for SplineSpline, CircleCircle, and RectSquare pipes."""
+    """Plot marker dots for SplineSpline, CircleCircle, and RectRect pipes."""
     if isinstance(pipe, SplineSpline):
         outer_verts = np.array(pipe.outer.vertices[:5])
         inner_verts = np.array(pipe.inner.vertices[:5])
@@ -56,7 +56,7 @@ def plot_pipe_markers(ax, pipe: Pipe) -> None:
                 label="_nolegend_",
             )
 
-    if isinstance(pipe, RectSquare):
+    if isinstance(pipe, RectRect):
         if isinstance(pipe.outer, Rect) and isinstance(pipe.inner, Rect):
             outer_x, outer_y = get_rect_points(pipe.outer)
             inner_x, inner_y = get_rect_points(pipe.inner)

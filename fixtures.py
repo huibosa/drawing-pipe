@@ -1,18 +1,18 @@
-from pipes import CircleCircle, RectSquare, SplineSpline
+from pipes import CircleCircle, RectRect, SplineSpline
 
 from shapes import Circle, CubicSplineShape, Rect
 
-FINISH_3 = RectSquare(
+FINISH_3 = RectRect(
     outer=Rect(origin=(0.0, 5.0), length=60.0, width=50.0),
     inner=Rect(origin=(0.0, 0.0), length=44.0, width=44.0),
 )
 
-FINISH_6 = RectSquare(
+FINISH_6 = RectRect(
     outer=Rect(origin=(0.0, 3.5), length=63.0, width=56.0),
     inner=Rect(origin=(0.0, 0.0), length=44.0, width=44.0),
 )
 
-FINISH_8 = RectSquare(
+FINISH_8 = RectRect(
     outer=Rect(origin=(0.0, 2.5), length=65.0, width=60.0),
     inner=Rect(origin=(0.0, 0.0), length=44.0, width=44.0),
 )
@@ -46,7 +46,7 @@ PROCESS = [
             origin=(0.0, 0.0), v1=(0.0, 23.7), v2=(19.6, 19.6), v3=(24.0, 0.0)
         ),
     ),
-    RectSquare(
+    RectRect(
         outer=Rect(origin=(0.0, 2.5), length=65.0, width=60.0),
         inner=Rect(origin=(0.0, 0.0), length=44.0, width=44.0),
     ),

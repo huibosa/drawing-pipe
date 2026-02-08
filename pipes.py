@@ -32,17 +32,17 @@ class CircleCircle(Pipe):
         return np.array((thickness,) * 5)
 
 
-class CircleSquare(Pipe):
+class CircleRect(Pipe):
     def __init__(self, outer: Circle, inner: Rect) -> None:
         super().__init__(outer, inner)
 
 
-class EllipseSquare(Pipe):
+class EllipseRect(Pipe):
     def __init__(self, outer: Ellipse, inner: Rect) -> None:
         super().__init__(outer, inner)
 
 
-class RectSquare(Pipe):
+class RectRect(Pipe):
     def __init__(self, outer: Rect, inner: Rect) -> None:
         super().__init__(outer, inner)
 
