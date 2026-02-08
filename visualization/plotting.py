@@ -87,6 +87,38 @@ def _draw_on_axis(
         )
 
 
+def plot_single_process(
+    ax,
+    pipe1: Pipe,
+    pipe2: Pipe,
+    title: str = "Pipe Comparison",
+    metrics: tuple[float, float, float, float, float] | None = None,
+    area_reduction: float | None = None,
+    ecc_diff: float | None = None,
+    limits: tuple | None = None,
+) -> None:
+    """Draw pipe1 vs pipe2 comparison on given axis."""
+    pipes = [pipe1, pipe2]
+    labels = ["Pipe 1", "Pipe 2"]
+    colors = [constants.BASE_COLORS[0], constants.BASE_COLORS[1]]
+    alphas = [constants.BASE_ALPHAS[0], constants.BASE_ALPHAS[1]]
+    custom_styles = [{}, {"fill": False, "linestyle": "--"}]
+
+    _draw_on_axis(
+        ax,
+        pipes,
+        labels,
+        colors,
+        alphas,
+        custom_styles=custom_styles,
+        metrics=metrics,
+        limits=limits,
+        area_reduction=area_reduction,
+        ecc_diff=ecc_diff,
+    )
+    ax.set_title(title, fontsize=constants.TITLE_FONTSIZE)
+
+
 def plot_process(pipes: list[Pipe]) -> None:
     """
     Plot pipes.
@@ -106,41 +138,32 @@ def plot_process(pipes: list[Pipe]) -> None:
 
     common_limits = get_common_limits(pipes, padding=constants.DEFAULT_PADDING)
 
-    comparison_styles = [{}, {"fill": False, "linestyle": "--"}]
-
     if n_items <= 2:
         fig, ax = plt.subplots(figsize=constants.SINGLE_FIGURE_SIZE)
-        current_styles = []
 
         if n_items == 2:
-            current_styles = comparison_styles
-
-        _draw_on_axis(
-            ax,
-            pipes,
-            labels,
-            constants.BASE_COLORS[:n_items],
-            constants.BASE_ALPHAS[:n_items],
-            custom_styles=current_styles,
-            metrics=tuple(thickness_reductions[0])
-            if len(thickness_reductions) > 0
-            else None,
-            limits=common_limits,
-            area_reduction=reductions[0] if reductions else None,
-            ecc_diff=ecc_diffs[0] if ecc_diffs else None,
-        )
-
-        _draw_on_axis(
-            ax,
-            pipes,
-            labels,
-            constants.BASE_COLORS[:n_items],
-            constants.BASE_ALPHAS[:n_items],
-            custom_styles=current_styles,
-            limits=common_limits,
-        )
-        title = "Pipe Comparison" if n_items == 2 else "Pipe Visualization"
-        ax.set_title(title, fontsize=constants.TITLE_FONTSIZE)
+            plot_single_process(
+                ax,
+                pipes[0],
+                pipes[1],
+                title="Pipe Comparison",
+                metrics=tuple(thickness_reductions[0])
+                if len(thickness_reductions) > 0
+                else None,
+                area_reduction=reductions[0] if reductions else None,
+                ecc_diff=ecc_diffs[0] if ecc_diffs else None,
+                limits=common_limits,
+            )
+        else:
+            _draw_on_axis(
+                ax,
+                pipes,
+                labels,
+                constants.BASE_COLORS[:n_items],
+                constants.BASE_ALPHAS[:n_items],
+                limits=common_limits,
+            )
+            ax.set_title("Pipe Visualization", fontsize=constants.TITLE_FONTSIZE)
 
     else:
         n_subplots = n_items - 1
@@ -153,30 +176,17 @@ def plot_process(pipes: list[Pipe]) -> None:
             axes = [axes]
 
         for i in range(n_subplots):
-            ax = axes[i]
-            idx1, idx2 = i, i + 1
-            p_sub = [pipes[idx1], pipes[idx2]]
-            l_sub = [labels[idx1], labels[idx2]]
-            c_sub = [constants.BASE_COLORS[idx1 % 5], constants.BASE_COLORS[idx2 % 5]]
-            a_sub = [constants.BASE_ALPHAS[idx1 % 5], constants.BASE_ALPHAS[idx2 % 5]]
-
-            _draw_on_axis(
-                ax,
-                p_sub,
-                l_sub,
-                c_sub,
-                a_sub,
-                custom_styles=comparison_styles,
+            plot_single_process(
+                axes[i],
+                pipes[i],
+                pipes[i + 1],
+                title=f"Transition: Pipe {i + 1} → Pipe {i + 2}",
                 metrics=tuple(thickness_reductions[i])
                 if len(thickness_reductions) > 0
                 else None,
-                limits=common_limits,
                 area_reduction=reductions[i] if reductions else None,
                 ecc_diff=ecc_diffs[i] if ecc_diffs else None,
-            )
-            ax.set_title(
-                f"Transition: {l_sub[0]} → {l_sub[1]}",
-                fontsize=constants.SUBTITLE_FONTSIZE,
+                limits=common_limits,
             )
 
     plt.tight_layout()
