@@ -20,7 +20,7 @@ class Circle(BaseModel):
         extra="forbid",
     )
     origin: tuple[float, float]
-    diameter: float
+    diameter: float = Field(gt=0)
 
     @property
     def area(self) -> float:
@@ -34,9 +34,9 @@ class Rect(BaseModel):
         extra="forbid",
     )
     origin: tuple[float, float]
-    length: float
-    width: float
-    fillet_radius: float = Field(default=2.5)
+    length: float = Field(gt=0)
+    width: float = Field(gt=0)
+    fillet_radius: float = Field(default=2.5, gt=0)
 
     @property
     def area(self) -> float:
@@ -53,8 +53,8 @@ class Ellipse(BaseModel):
         extra="forbid",
     )
     origin: tuple[float, float]
-    major_axis: float
-    minor_axis: float
+    major_axis: float = Field(gt=0)
+    minor_axis: float = Field(gt=0)
 
     @property
     def area(self) -> float:
