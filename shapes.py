@@ -1,20 +1,17 @@
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from __future__ import annotations
 
 import numpy as np
+from pydantic import BaseModel, ConfigDict, Field
 from scipy.interpolate import CubicSpline
 
 
-class Shape(ABC):
+class Shape(BaseModel):
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
     origin: tuple[float, float]
 
-    @property
-    @abstractmethod
-    def area(self) -> float: ...
 
-
-@dataclass(frozen=True)
 class Circle(Shape):
+    model_config = ConfigDict(frozen=True)
     origin: tuple[float, float]
     diameter: float
 
@@ -23,12 +20,12 @@ class Circle(Shape):
         return (self.diameter / 2) ** 2 * np.pi
 
 
-@dataclass(frozen=True)
 class Rect(Shape):
+    model_config = ConfigDict(frozen=True)
     origin: tuple[float, float]
     length: float
     width: float
-    fillet_radius: float = field(default=2.5)
+    fillet_radius: float = Field(default=2.5)
 
     @property
     def area(self) -> float:
@@ -38,8 +35,8 @@ class Rect(Shape):
         return base_area - corner_correction
 
 
-@dataclass(frozen=True)
 class Ellipse(Shape):
+    model_config = ConfigDict(frozen=True)
     origin: tuple[float, float]
     major_axis: float
     minor_axis: float
@@ -49,8 +46,8 @@ class Ellipse(Shape):
         return np.pi * self.major_axis * self.minor_axis / 4
 
 
-@dataclass(frozen=True)
 class CubicSplineShape(Shape):
+    model_config = ConfigDict(frozen=True)
     """Shape defined by cubic spline, symmetric about X and Y axes."""
 
     origin: tuple[float, float]

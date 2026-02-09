@@ -1,12 +1,11 @@
-from dataclasses import dataclass
-
 import numpy as np
+from pydantic import BaseModel, ConfigDict
 
-from shapes import Circle, CubicSplineShape, Ellipse, Rect, Shape
+from shapes import Shape
 
 
-@dataclass(frozen=True)
-class Pipe:
+class Pipe(BaseModel):
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
     outer: Shape
     inner: Shape
 
@@ -22,9 +21,6 @@ class Pipe:
 
 
 class CircleCircle(Pipe):
-    def __init__(self, outer: Circle, inner: Circle) -> None:
-        super().__init__(outer, inner)
-
     @property
     def thickness(self) -> np.ndarray:
         thickness = (self.outer.diameter - self.inner.diameter) / 2.0
@@ -33,19 +29,14 @@ class CircleCircle(Pipe):
 
 
 class CircleRect(Pipe):
-    def __init__(self, outer: Circle, inner: Rect) -> None:
-        super().__init__(outer, inner)
+    pass
 
 
 class EllipseRect(Pipe):
-    def __init__(self, outer: Ellipse, inner: Rect) -> None:
-        super().__init__(outer, inner)
+    pass
 
 
 class RectRect(Pipe):
-    def __init__(self, outer: Rect, inner: Rect) -> None:
-        super().__init__(outer, inner)
-
     @property
     def thickness(self) -> np.ndarray:
         ox_o, oy_o = self.outer.origin
@@ -87,9 +78,6 @@ class RectRect(Pipe):
 
 
 class SplineSpline(Pipe):
-    def __init__(self, outer: CubicSplineShape, inner: CubicSplineShape) -> None:
-        super().__init__(outer, inner)
-
     @property
     def thickness(self) -> np.ndarray:
         outer_verts = self.outer.vertices[:5]
