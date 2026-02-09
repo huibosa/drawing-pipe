@@ -6,12 +6,19 @@ from scipy.interpolate import CubicSpline
 
 
 class Shape(BaseModel):
-    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+    model_config = ConfigDict(
+        frozen=True,
+        arbitrary_types_allowed=True,
+    )
     origin: tuple[float, float]
 
 
-class Circle(Shape):
-    model_config = ConfigDict(frozen=True)
+class Circle(BaseModel):
+    model_config = ConfigDict(
+        frozen=True,
+        strict=True,
+        extra="forbid",
+    )
     origin: tuple[float, float]
     diameter: float
 
@@ -20,8 +27,12 @@ class Circle(Shape):
         return (self.diameter / 2) ** 2 * np.pi
 
 
-class Rect(Shape):
-    model_config = ConfigDict(frozen=True)
+class Rect(BaseModel):
+    model_config = ConfigDict(
+        frozen=True,
+        strict=True,
+        extra="forbid",
+    )
     origin: tuple[float, float]
     length: float
     width: float
@@ -35,8 +46,12 @@ class Rect(Shape):
         return base_area - corner_correction
 
 
-class Ellipse(Shape):
-    model_config = ConfigDict(frozen=True)
+class Ellipse(BaseModel):
+    model_config = ConfigDict(
+        frozen=True,
+        strict=True,
+        extra="forbid",
+    )
     origin: tuple[float, float]
     major_axis: float
     minor_axis: float
@@ -46,8 +61,12 @@ class Ellipse(Shape):
         return np.pi * self.major_axis * self.minor_axis / 4
 
 
-class CubicSplineShape(Shape):
-    model_config = ConfigDict(frozen=True)
+class CubicSplineShape(BaseModel):
+    model_config = ConfigDict(
+        frozen=True,
+        strict=True,
+        extra="forbid",
+    )
     """Shape defined by cubic spline, symmetric about X and Y axes."""
 
     origin: tuple[float, float]

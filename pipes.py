@@ -1,13 +1,16 @@
 import numpy as np
 from pydantic import BaseModel, ConfigDict
 
-from shapes import Shape
+from shapes import Circle, CubicSplineShape, Ellipse, Rect
 
 
 class Pipe(BaseModel):
-    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
-    outer: Shape
-    inner: Shape
+    model_config = ConfigDict(
+        frozen=True,
+        arbitrary_types_allowed=True,
+    )
+    outer: Circle | Rect | Ellipse | CubicSplineShape
+    inner: Circle | Rect | Ellipse | CubicSplineShape
 
     @property
     def area(self) -> float:
@@ -21,6 +24,12 @@ class Pipe(BaseModel):
 
 
 class CircleCircle(Pipe):
+    model_config = ConfigDict(
+        frozen=True,
+        strict=True,
+        extra="forbid",
+    )
+
     @property
     def thickness(self) -> np.ndarray:
         thickness = (self.outer.diameter - self.inner.diameter) / 2.0
@@ -29,14 +38,28 @@ class CircleCircle(Pipe):
 
 
 class CircleRect(Pipe):
-    pass
+    model_config = ConfigDict(
+        frozen=True,
+        strict=True,
+        extra="forbid",
+    )
 
 
 class EllipseRect(Pipe):
-    pass
+    model_config = ConfigDict(
+        frozen=True,
+        strict=True,
+        extra="forbid",
+    )
 
 
 class RectRect(Pipe):
+    model_config = ConfigDict(
+        frozen=True,
+        strict=True,
+        extra="forbid",
+    )
+
     @property
     def thickness(self) -> np.ndarray:
         ox_o, oy_o = self.outer.origin
@@ -78,6 +101,12 @@ class RectRect(Pipe):
 
 
 class SplineSpline(Pipe):
+    model_config = ConfigDict(
+        frozen=True,
+        strict=True,
+        extra="forbid",
+    )
+
     @property
     def thickness(self) -> np.ndarray:
         outer_verts = self.outer.vertices[:5]
