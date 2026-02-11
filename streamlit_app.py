@@ -5,7 +5,6 @@ from typing import cast
 
 import matplotlib.pyplot as plt
 import streamlit as st
-from pydantic import ValidationError
 
 import fixtures
 from pipes import CircleCircle, Pipe, RectRect, SplineSpline
@@ -62,14 +61,6 @@ def _init_debounce_state() -> None:
 def _clear_edit_widget_keys() -> None:
     stale_keys = [
         k for k in st.session_state if isinstance(k, str) and k.startswith("pipe_")
-    ]
-    for k in stale_keys:
-        del st.session_state[k]
-
-
-def _clear_widget_keys_by_prefix(prefix: str) -> None:
-    stale_keys = [
-        k for k in st.session_state if isinstance(k, str) and k.startswith(prefix)
     ]
     for k in stale_keys:
         del st.session_state[k]
@@ -282,62 +273,6 @@ def _build_pipe_from_shapes(
     return SplineSpline(outer=outer, inner=inner)
 
 
-def _render_add_pipe_form() -> None:
-    editable_pipes = st.session_state["editable_pipes"]
-    st.subheader("Add or Insert Pipe")
-
-    with st.form("add_pipe_form"):
-        pipe_type = st.selectbox("Pipe type", PIPE_TYPE_OPTIONS)
-        placement_mode = st.radio(
-            "Placement",
-            ["Append to end", "Insert before Pipe N"],
-        )
-
-        insert_idx = None
-        if placement_mode == "Insert before Pipe N":
-            if editable_pipes:
-                insert_idx = int(
-                    st.number_input(
-                        "Insert before pipe number",
-                        min_value=1,
-                        max_value=len(editable_pipes),
-                        value=1,
-                        step=1,
-                    )
-                )
-            else:
-                st.caption("Process is empty, so this will append to end.")
-
-        st.markdown("**Outer parameters**")
-        if pipe_type == "CircleCircle":
-            outer = _circle_inputs("Outer", "add_outer")
-            inner = _circle_inputs("Inner", "add_inner")
-        elif pipe_type == "RectRect":
-            outer = _rect_inputs("Outer", "add_outer")
-            inner = _rect_inputs("Inner", "add_inner")
-        else:
-            outer = _spline_inputs("Outer", "add_outer")
-            inner = _spline_inputs("Inner", "add_inner")
-
-        submitted = st.form_submit_button("Apply")
-
-    if not submitted:
-        return
-
-    try:
-        new_pipe = _build_pipe_from_shapes(pipe_type, outer, inner)
-    except ValidationError as exc:
-        st.error(f"Invalid pipe definition: {exc}")
-        return
-
-    if placement_mode == "Insert before Pipe N" and insert_idx is not None:
-        st.session_state["editable_pipes"].insert(insert_idx - 1, new_pipe)
-    else:
-        st.session_state["editable_pipes"].append(new_pipe)
-    _reset_debounce_state()
-    st.rerun()
-
-
 def _mark_pipe_dirty(pipe_idx: int) -> None:
     edit_seq = st.session_state.setdefault("pipe_edit_seq", {})
     last_change_at = st.session_state.setdefault("pipe_last_change_at", {})
@@ -346,20 +281,130 @@ def _mark_pipe_dirty(pipe_idx: int) -> None:
     last_change_at[pipe_idx] = time.monotonic()
 
 
-def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
-    st.caption(f"Type: {type(pipe).__name__} (immutable)")
-    inner_col, outer_col = st.columns(2)
-
-    on_change_args = (pipe_idx,)
+def _pipe_type_name(pipe: Pipe) -> str:
     if isinstance(pipe, CircleCircle):
-        inner_defaults = cast(Circle, pipe.inner)
-        outer_defaults = cast(Circle, pipe.outer)
+        return "CircleCircle"
+    if isinstance(pipe, RectRect):
+        return "RectRect"
+    return "SplineSpline"
+
+
+def _circle_defaults_from_shape(shape: Circle | Rect | CubicSplineShape) -> Circle:
+    if isinstance(shape, Circle):
+        return shape
+    if isinstance(shape, Rect):
+        diameter = min(shape.length, shape.width)
+        return Circle(origin=shape.origin, diameter=max(0.01, float(diameter)))
+
+    diameter = 2.0 * max(
+        abs(shape.v1[1]),
+        abs(shape.v2[0]),
+        abs(shape.v2[1]),
+        abs(shape.v3[0]),
+    )
+    return Circle(origin=shape.origin, diameter=max(0.01, float(diameter)))
+
+
+def _rect_defaults_from_shape(shape: Circle | Rect | CubicSplineShape) -> Rect:
+    if isinstance(shape, Rect):
+        return shape
+    if isinstance(shape, Circle):
+        side = max(0.01, float(shape.diameter))
+        return Rect(origin=shape.origin, length=side, width=side, fillet_radius=2.5)
+
+    length = max(0.01, float(2.0 * max(abs(shape.v1[1]), abs(shape.v2[1]))))
+    width = max(0.01, float(2.0 * max(abs(shape.v2[0]), abs(shape.v3[0]))))
+    fillet_radius = min(2.5, length / 4.0, width / 4.0)
+    return Rect(
+        origin=shape.origin,
+        length=length,
+        width=width,
+        fillet_radius=max(0.01, float(fillet_radius)),
+    )
+
+
+def _spline_defaults_from_shape(
+    shape: Circle | Rect | CubicSplineShape,
+) -> CubicSplineShape:
+    if isinstance(shape, CubicSplineShape):
+        return shape
+
+    if isinstance(shape, Circle):
+        half_width = shape.diameter / 2.0
+        half_height = shape.diameter / 2.0
+    else:
+        half_width = shape.width / 2.0
+        half_height = shape.length / 2.0
+
+    return CubicSplineShape(
+        origin=shape.origin,
+        v1=(0.0, float(max(0.01, half_height))),
+        v2=(
+            float(max(0.01, half_width / 1.5)),
+            float(max(0.01, half_height / 1.5)),
+        ),
+        v3=(float(max(0.01, half_width)), 0.0),
+    )
+
+
+def _defaults_for_pipe_type(
+    pipe_type: str,
+    pipe: Pipe,
+) -> tuple[Circle | Rect | CubicSplineShape, Circle | Rect | CubicSplineShape]:
+    if pipe_type == "CircleCircle":
+        inner = _circle_defaults_from_shape(
+            cast(Circle | Rect | CubicSplineShape, pipe.inner)
+        )
+        outer = _circle_defaults_from_shape(
+            cast(Circle | Rect | CubicSplineShape, pipe.outer)
+        )
+        return inner, outer
+    if pipe_type == "RectRect":
+        inner = _rect_defaults_from_shape(
+            cast(Circle | Rect | CubicSplineShape, pipe.inner)
+        )
+        outer = _rect_defaults_from_shape(
+            cast(Circle | Rect | CubicSplineShape, pipe.outer)
+        )
+        return inner, outer
+
+    inner = _spline_defaults_from_shape(
+        cast(Circle | Rect | CubicSplineShape, pipe.inner)
+    )
+    outer = _spline_defaults_from_shape(
+        cast(Circle | Rect | CubicSplineShape, pipe.outer)
+    )
+    return inner, outer
+
+
+def _make_insert_pipe(reference_pipe: Pipe) -> Pipe:
+    return reference_pipe.model_copy(deep=True)
+
+
+def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
+    current_type = _pipe_type_name(pipe)
+    selected_type = st.selectbox(
+        "Pipe type",
+        PIPE_TYPE_OPTIONS,
+        index=PIPE_TYPE_OPTIONS.index(current_type),
+        key=f"{key_prefix}_type",
+        on_change=_mark_pipe_dirty,
+        args=(pipe_idx,),
+    )
+
+    inner_col, outer_col = st.columns(2)
+    on_change_args = (pipe_idx,)
+    inner_defaults, outer_defaults = _defaults_for_pipe_type(selected_type, pipe)
+
+    if selected_type == "CircleCircle":
+        inner_defaults_circle = cast(Circle, inner_defaults)
+        outer_defaults_circle = cast(Circle, outer_defaults)
         with inner_col:
             st.markdown("**Inner**")
             inner = _circle_inputs(
                 "Inner",
                 f"{key_prefix}_inner",
-                inner_defaults,
+                inner_defaults_circle,
                 on_change=_mark_pipe_dirty,
                 on_change_args=on_change_args,
             )
@@ -368,21 +413,21 @@ def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
             outer = _circle_inputs(
                 "Outer",
                 f"{key_prefix}_outer",
-                outer_defaults,
+                outer_defaults_circle,
                 on_change=_mark_pipe_dirty,
                 on_change_args=on_change_args,
             )
-        return CircleCircle(outer=outer, inner=inner)
+        return _build_pipe_from_shapes(selected_type, outer=outer, inner=inner)
 
-    if isinstance(pipe, RectRect):
-        inner_defaults = cast(Rect, pipe.inner)
-        outer_defaults = cast(Rect, pipe.outer)
+    if selected_type == "RectRect":
+        inner_defaults_rect = cast(Rect, inner_defaults)
+        outer_defaults_rect = cast(Rect, outer_defaults)
         with inner_col:
             st.markdown("**Inner**")
             inner = _rect_inputs(
                 "Inner",
                 f"{key_prefix}_inner",
-                inner_defaults,
+                inner_defaults_rect,
                 on_change=_mark_pipe_dirty,
                 on_change_args=on_change_args,
             )
@@ -391,20 +436,20 @@ def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
             outer = _rect_inputs(
                 "Outer",
                 f"{key_prefix}_outer",
-                outer_defaults,
+                outer_defaults_rect,
                 on_change=_mark_pipe_dirty,
                 on_change_args=on_change_args,
             )
-        return RectRect(outer=outer, inner=inner)
+        return _build_pipe_from_shapes(selected_type, outer=outer, inner=inner)
 
-    inner_defaults = cast(CubicSplineShape, pipe.inner)
-    outer_defaults = cast(CubicSplineShape, pipe.outer)
+    inner_defaults_spline = cast(CubicSplineShape, inner_defaults)
+    outer_defaults_spline = cast(CubicSplineShape, outer_defaults)
     with inner_col:
         st.markdown("**Inner**")
         inner = _spline_inputs(
             "Inner",
             f"{key_prefix}_inner",
-            inner_defaults,
+            inner_defaults_spline,
             on_change=_mark_pipe_dirty,
             on_change_args=on_change_args,
         )
@@ -413,11 +458,11 @@ def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
         outer = _spline_inputs(
             "Outer",
             f"{key_prefix}_outer",
-            outer_defaults,
+            outer_defaults_spline,
             on_change=_mark_pipe_dirty,
             on_change_args=on_change_args,
         )
-    return SplineSpline(outer=outer, inner=inner)
+    return _build_pipe_from_shapes(selected_type, outer=outer, inner=inner)
 
 
 @st.fragment
@@ -490,8 +535,25 @@ def _render_transition_rows(
             else:
                 st.caption("Updated")
 
-            if st.button("x", key=f"pipe_delete_{idx}", help=f"Delete Pipe {idx + 1}"):
+            action_cols = st.columns(2)
+            if action_cols[0].button(
+                "x",
+                key=f"pipe_delete_{idx}",
+                help=f"Delete Pipe {idx + 1}",
+            ):
                 st.session_state["editable_pipes"].pop(idx)
+                _reset_debounce_state()
+                st.rerun()
+
+            if action_cols[1].button(
+                "+",
+                key=f"pipe_insert_after_{idx}",
+                help=f"Insert Pipe after {idx + 1}",
+            ):
+                st.session_state["editable_pipes"].insert(
+                    idx + 1,
+                    _make_insert_pipe(updated_pipe),
+                )
                 _reset_debounce_state()
                 st.rerun()
 
@@ -545,6 +607,7 @@ def main() -> None:
 
     _init_editable_pipes(template_options)
     default_template_name = _default_template_name(template_options)
+    debounce_seconds = 1.0
 
     with st.sidebar:
         st.header("Controls")
@@ -560,13 +623,6 @@ def main() -> None:
             st.rerun()
 
         show_markers = st.checkbox("Show markers", value=True)
-        debounce_seconds = st.slider(
-            "Edit debounce (seconds)",
-            min_value=0.5,
-            max_value=2.0,
-            value=1.0,
-            step=0.1,
-        )
         padding = st.slider(
             "Padding",
             min_value=0.00,
@@ -574,7 +630,6 @@ def main() -> None:
             value=constants.DEFAULT_PADDING,
             step=0.01,
         )
-        _render_add_pipe_form()
 
     editable_pipes = st.session_state["editable_pipes"]
     if not editable_pipes:
