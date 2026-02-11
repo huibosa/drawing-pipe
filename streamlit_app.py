@@ -512,7 +512,7 @@ def _render_transition_rows(
     for idx, pipe_col in enumerate(pipe_cols):
         pipe = editable_pipes[idx]
         with pipe_col:
-            st.markdown(f"**Pipe {idx + 1}**")
+            st.header(f"Pipe {idx + 1}")
             updated_pipe = _edit_pipe_inputs_live(
                 pipe,
                 key_prefix=f"pipe_{idx}",
