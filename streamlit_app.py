@@ -93,11 +93,23 @@ def _init_debounce_state() -> None:
         st.session_state["transition_applied_seq"] = {}
 
 
+def _clear_edit_widget_keys() -> None:
+    stale_keys = [
+        k
+        for k in st.session_state
+        if isinstance(k, str)
+        and (k.startswith("transition_") or k.startswith("single_edit_"))
+    ]
+    for k in stale_keys:
+        del st.session_state[k]
+
+
 def _reset_debounce_state() -> None:
     st.session_state["transition_edit_seq"] = {}
     st.session_state["transition_last_change_at"] = {}
     st.session_state["transition_applied_seq"] = {}
     st.session_state["pending_pipe_updates"] = {}
+    _clear_edit_widget_keys()
 
 
 def _circle_inputs(
