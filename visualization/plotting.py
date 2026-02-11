@@ -123,6 +123,32 @@ def plot_single_process(
     ax.set_title(title, fontsize=constants.TITLE_FONTSIZE)
 
 
+def plot_pipe(
+    pipe: Pipe,
+    *,
+    title: str = "Pipe Visualization",
+    show: bool = True,
+    show_markers: bool = True,
+    limits: tuple | None = None,
+):
+    """Plot a single pipe in a standalone figure."""
+    fig, ax = plt.subplots(figsize=constants.SINGLE_FIGURE_SIZE)
+    _draw_on_axis(
+        ax,
+        [pipe],
+        ["Pipe 1"],
+        [constants.BASE_COLORS[0]],
+        [constants.BASE_ALPHAS[0]],
+        limits=limits,
+        show_markers=show_markers,
+    )
+    ax.set_title(title, fontsize=constants.TITLE_FONTSIZE)
+    plt.tight_layout()
+    if show:
+        plt.show()
+    return fig
+
+
 def plot_process(
     pipes: list[Pipe],
     *,
