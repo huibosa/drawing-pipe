@@ -406,7 +406,7 @@ def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
         outer_defaults_circle = cast(Circle, outer_defaults)
         st.markdown("**Outer**")
         outer = _circle_inputs(
-            "Outer",
+            "",
             f"{key_prefix}_outer",
             outer_defaults_circle,
             on_change=_mark_pipe_dirty,
@@ -414,7 +414,7 @@ def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
         )
         st.markdown("**Inner**")
         inner = _circle_inputs(
-            "Inner",
+            "",
             f"{key_prefix}_inner",
             inner_defaults_circle,
             on_change=_mark_pipe_dirty,
@@ -427,7 +427,7 @@ def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
         outer_defaults_rect = cast(Rect, outer_defaults)
         st.markdown("**Outer**")
         outer = _rect_inputs(
-            "Outer",
+            "",
             f"{key_prefix}_outer",
             outer_defaults_rect,
             on_change=_mark_pipe_dirty,
@@ -435,7 +435,7 @@ def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
         )
         st.markdown("**Inner**")
         inner = _rect_inputs(
-            "Inner",
+            "",
             f"{key_prefix}_inner",
             inner_defaults_rect,
             on_change=_mark_pipe_dirty,
@@ -447,7 +447,7 @@ def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
     outer_defaults_spline = cast(CubicSplineShape, outer_defaults)
     st.markdown("**Outer**")
     outer = _spline_inputs(
-        "Outer",
+        "",
         f"{key_prefix}_outer",
         outer_defaults_spline,
         on_change=_mark_pipe_dirty,
@@ -455,7 +455,7 @@ def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
     )
     st.markdown("**Inner**")
     inner = _spline_inputs(
-        "Inner",
+        "",
         f"{key_prefix}_inner",
         inner_defaults_spline,
         on_change=_mark_pipe_dirty,
