@@ -81,6 +81,7 @@ def _init_editable_pipes(template_options: dict[str, list[Pipe]]) -> None:
     if "editable_pipes" not in st.session_state:
         default_name = _default_template_name(template_options)
         st.session_state["editable_pipes"] = list(template_options[default_name])
+        st.session_state["current_template"] = default_name
     _init_debounce_state()
 
 
@@ -99,6 +100,14 @@ def _clear_edit_widget_keys() -> None:
         for k in st.session_state
         if isinstance(k, str)
         and (k.startswith("transition_") or k.startswith("single_edit_"))
+    ]
+    for k in stale_keys:
+        del st.session_state[k]
+
+
+def _clear_widget_keys_by_prefix(prefix: str) -> None:
+    stale_keys = [
+        k for k in st.session_state if isinstance(k, str) and k.startswith(prefix)
     ]
     for k in stale_keys:
         del st.session_state[k]
@@ -663,6 +672,13 @@ def _debounce_poller(debounce_seconds: float) -> None:
         applied_seq[transition_idx] = current_seq
         any_applied = True
 
+        # Clear adjacent transition widget keys so shared pipes refresh.
+        num_transitions = len(st.session_state["editable_pipes"]) - 1
+        if transition_idx > 0:
+            _clear_widget_keys_by_prefix(f"transition_{transition_idx - 1}_right_")
+        if transition_idx + 1 < num_transitions:
+            _clear_widget_keys_by_prefix(f"transition_{transition_idx + 1}_left_")
+
     if any_applied:
         st.session_state["pending_pipe_updates"] = {}
         st.rerun(scope="app")
@@ -686,8 +702,9 @@ def main() -> None:
             list(template_options.keys()),
             index=list(template_options.keys()).index(default_template_name),
         )
-        if st.button("Load template"):
+        if selected_name != st.session_state.get("current_template"):
             st.session_state["editable_pipes"] = list(template_options[selected_name])
+            st.session_state["current_template"] = selected_name
             _reset_debounce_state()
             st.rerun()
 
