@@ -84,7 +84,8 @@ def _circle_inputs(
     default_origin = defaults.origin if defaults else (0.0, 0.0)
     default_diameter = defaults.diameter if defaults else 60.0
 
-    ox = st.number_input(
+    origin_cols = st.columns(2)
+    ox = origin_cols[0].number_input(
         f"{label_prefix} origin x",
         key=f"{key_prefix}_ox",
         value=float(default_origin[0]),
@@ -92,7 +93,7 @@ def _circle_inputs(
         on_change=on_change,
         args=on_change_args,
     )
-    oy = st.number_input(
+    oy = origin_cols[1].number_input(
         f"{label_prefix} origin y",
         key=f"{key_prefix}_oy",
         value=float(default_origin[1]),
@@ -124,7 +125,8 @@ def _rect_inputs(
     default_width = defaults.width if defaults else 50.0
     default_fillet_radius = defaults.fillet_radius if defaults else 2.5
 
-    ox = st.number_input(
+    origin_cols = st.columns(2)
+    ox = origin_cols[0].number_input(
         f"{label_prefix} origin x",
         key=f"{key_prefix}_ox",
         value=float(default_origin[0]),
@@ -132,7 +134,7 @@ def _rect_inputs(
         on_change=on_change,
         args=on_change_args,
     )
-    oy = st.number_input(
+    oy = origin_cols[1].number_input(
         f"{label_prefix} origin y",
         key=f"{key_prefix}_oy",
         value=float(default_origin[1]),
@@ -187,7 +189,8 @@ def _spline_inputs(
     default_v2 = defaults.v2 if defaults else (20.0, 20.0)
     default_v3 = defaults.v3 if defaults else (30.0, 0.0)
 
-    ox = st.number_input(
+    origin_cols = st.columns(2)
+    ox = origin_cols[0].number_input(
         f"{label_prefix} origin x",
         key=f"{key_prefix}_ox",
         value=float(default_origin[0]),
@@ -195,7 +198,7 @@ def _spline_inputs(
         on_change=on_change,
         args=on_change_args,
     )
-    oy = st.number_input(
+    oy = origin_cols[1].number_input(
         f"{label_prefix} origin y",
         key=f"{key_prefix}_oy",
         value=float(default_origin[1]),
@@ -204,7 +207,8 @@ def _spline_inputs(
         args=on_change_args,
     )
 
-    v1x = st.number_input(
+    v1_cols = st.columns(2)
+    v1x = v1_cols[0].number_input(
         f"{label_prefix} v1 x",
         key=f"{key_prefix}_v1x",
         value=float(default_v1[0]),
@@ -212,7 +216,7 @@ def _spline_inputs(
         on_change=on_change,
         args=on_change_args,
     )
-    v1y = st.number_input(
+    v1y = v1_cols[1].number_input(
         f"{label_prefix} v1 y",
         key=f"{key_prefix}_v1y",
         value=float(default_v1[1]),
@@ -220,7 +224,8 @@ def _spline_inputs(
         on_change=on_change,
         args=on_change_args,
     )
-    v2x = st.number_input(
+    v2_cols = st.columns(2)
+    v2x = v2_cols[0].number_input(
         f"{label_prefix} v2 x",
         key=f"{key_prefix}_v2x",
         value=float(default_v2[0]),
@@ -228,7 +233,7 @@ def _spline_inputs(
         on_change=on_change,
         args=on_change_args,
     )
-    v2y = st.number_input(
+    v2y = v2_cols[1].number_input(
         f"{label_prefix} v2 y",
         key=f"{key_prefix}_v2y",
         value=float(default_v2[1]),
@@ -236,7 +241,8 @@ def _spline_inputs(
         on_change=on_change,
         args=on_change_args,
     )
-    v3x = st.number_input(
+    v3_cols = st.columns(2)
+    v3x = v3_cols[0].number_input(
         f"{label_prefix} v3 x",
         key=f"{key_prefix}_v3x",
         value=float(default_v3[0]),
@@ -244,7 +250,7 @@ def _spline_inputs(
         on_change=on_change,
         args=on_change_args,
     )
-    v3y = st.number_input(
+    v3y = v3_cols[1].number_input(
         f"{label_prefix} v3 y",
         key=f"{key_prefix}_v3y",
         value=float(default_v3[1]),
@@ -392,76 +398,69 @@ def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
         args=(pipe_idx,),
     )
 
-    inner_col, outer_col = st.columns(2)
     on_change_args = (pipe_idx,)
     inner_defaults, outer_defaults = _defaults_for_pipe_type(selected_type, pipe)
 
     if selected_type == "CircleCircle":
         inner_defaults_circle = cast(Circle, inner_defaults)
         outer_defaults_circle = cast(Circle, outer_defaults)
-        with inner_col:
-            st.markdown("**Inner**")
-            inner = _circle_inputs(
-                "Inner",
-                f"{key_prefix}_inner",
-                inner_defaults_circle,
-                on_change=_mark_pipe_dirty,
-                on_change_args=on_change_args,
-            )
-        with outer_col:
-            st.markdown("**Outer**")
-            outer = _circle_inputs(
-                "Outer",
-                f"{key_prefix}_outer",
-                outer_defaults_circle,
-                on_change=_mark_pipe_dirty,
-                on_change_args=on_change_args,
-            )
+        st.markdown("**Outer**")
+        outer = _circle_inputs(
+            "Outer",
+            f"{key_prefix}_outer",
+            outer_defaults_circle,
+            on_change=_mark_pipe_dirty,
+            on_change_args=on_change_args,
+        )
+        st.markdown("**Inner**")
+        inner = _circle_inputs(
+            "Inner",
+            f"{key_prefix}_inner",
+            inner_defaults_circle,
+            on_change=_mark_pipe_dirty,
+            on_change_args=on_change_args,
+        )
         return _build_pipe_from_shapes(selected_type, outer=outer, inner=inner)
 
     if selected_type == "RectRect":
         inner_defaults_rect = cast(Rect, inner_defaults)
         outer_defaults_rect = cast(Rect, outer_defaults)
-        with inner_col:
-            st.markdown("**Inner**")
-            inner = _rect_inputs(
-                "Inner",
-                f"{key_prefix}_inner",
-                inner_defaults_rect,
-                on_change=_mark_pipe_dirty,
-                on_change_args=on_change_args,
-            )
-        with outer_col:
-            st.markdown("**Outer**")
-            outer = _rect_inputs(
-                "Outer",
-                f"{key_prefix}_outer",
-                outer_defaults_rect,
-                on_change=_mark_pipe_dirty,
-                on_change_args=on_change_args,
-            )
+        st.markdown("**Outer**")
+        outer = _rect_inputs(
+            "Outer",
+            f"{key_prefix}_outer",
+            outer_defaults_rect,
+            on_change=_mark_pipe_dirty,
+            on_change_args=on_change_args,
+        )
+        st.markdown("**Inner**")
+        inner = _rect_inputs(
+            "Inner",
+            f"{key_prefix}_inner",
+            inner_defaults_rect,
+            on_change=_mark_pipe_dirty,
+            on_change_args=on_change_args,
+        )
         return _build_pipe_from_shapes(selected_type, outer=outer, inner=inner)
 
     inner_defaults_spline = cast(CubicSplineShape, inner_defaults)
     outer_defaults_spline = cast(CubicSplineShape, outer_defaults)
-    with inner_col:
-        st.markdown("**Inner**")
-        inner = _spline_inputs(
-            "Inner",
-            f"{key_prefix}_inner",
-            inner_defaults_spline,
-            on_change=_mark_pipe_dirty,
-            on_change_args=on_change_args,
-        )
-    with outer_col:
-        st.markdown("**Outer**")
-        outer = _spline_inputs(
-            "Outer",
-            f"{key_prefix}_outer",
-            outer_defaults_spline,
-            on_change=_mark_pipe_dirty,
-            on_change_args=on_change_args,
-        )
+    st.markdown("**Outer**")
+    outer = _spline_inputs(
+        "Outer",
+        f"{key_prefix}_outer",
+        outer_defaults_spline,
+        on_change=_mark_pipe_dirty,
+        on_change_args=on_change_args,
+    )
+    st.markdown("**Inner**")
+    inner = _spline_inputs(
+        "Inner",
+        f"{key_prefix}_inner",
+        inner_defaults_spline,
+        on_change=_mark_pipe_dirty,
+        on_change_args=on_change_args,
+    )
     return _build_pipe_from_shapes(selected_type, outer=outer, inner=inner)
 
 
