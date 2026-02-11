@@ -537,8 +537,7 @@ def _debounce_poller(debounce_seconds: float) -> None:
 
 
 def main() -> None:
-    st.set_page_config(page_title="Drawing Pipe", layout="wide")
-    st.title("Drawing Pipe Process Explorer")
+    st.set_page_config(layout="wide")
     template_options = _load_template_options()
     if not template_options:
         st.error("No pipe templates found in fixtures.py")
@@ -582,8 +581,6 @@ def main() -> None:
         st.info("No pipes in the process. Load a template or add a new pipe.")
         return
 
-    st.subheader("Transition Figures")
-    st.caption("Pipe edits auto-apply after idle debounce.")
     _render_transition_rows(
         show_markers=show_markers,
         padding=padding,
