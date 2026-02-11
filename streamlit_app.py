@@ -404,7 +404,7 @@ def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
     if selected_type == "CircleCircle":
         inner_defaults_circle = cast(Circle, inner_defaults)
         outer_defaults_circle = cast(Circle, outer_defaults)
-        st.markdown("**Outer**")
+        st.header("Outer")
         outer = _circle_inputs(
             "",
             f"{key_prefix}_outer",
@@ -412,7 +412,7 @@ def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
             on_change=_mark_pipe_dirty,
             on_change_args=on_change_args,
         )
-        st.markdown("**Inner**")
+        st.header("Inner")
         inner = _circle_inputs(
             "",
             f"{key_prefix}_inner",
@@ -425,7 +425,7 @@ def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
     if selected_type == "RectRect":
         inner_defaults_rect = cast(Rect, inner_defaults)
         outer_defaults_rect = cast(Rect, outer_defaults)
-        st.markdown("**Outer**")
+        st.header("Outer")
         outer = _rect_inputs(
             "",
             f"{key_prefix}_outer",
@@ -433,7 +433,7 @@ def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
             on_change=_mark_pipe_dirty,
             on_change_args=on_change_args,
         )
-        st.markdown("**Inner**")
+        st.header("Inner")
         inner = _rect_inputs(
             "",
             f"{key_prefix}_inner",
@@ -445,7 +445,7 @@ def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
 
     inner_defaults_spline = cast(CubicSplineShape, inner_defaults)
     outer_defaults_spline = cast(CubicSplineShape, outer_defaults)
-    st.markdown("**Outer**")
+    st.header("Outer")
     outer = _spline_inputs(
         "",
         f"{key_prefix}_outer",
@@ -453,7 +453,7 @@ def _edit_pipe_inputs_live(pipe: Pipe, key_prefix: str, pipe_idx: int) -> Pipe:
         on_change=_mark_pipe_dirty,
         on_change_args=on_change_args,
     )
-    st.markdown("**Inner**")
+    st.header("Inner")
     inner = _spline_inputs(
         "",
         f"{key_prefix}_inner",
