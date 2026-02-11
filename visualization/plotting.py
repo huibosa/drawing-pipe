@@ -24,6 +24,7 @@ def _draw_on_axis(
     limits: tuple | None = None,
     area_reduction: float | None = None,
     ecc_diff: float | None = None,
+    show_markers: bool = True,
 ):
     for i, (pipe, label, color, alpha) in enumerate(
         zip(pipe_subset, label_subset, colors, alphas)
@@ -35,7 +36,8 @@ def _draw_on_axis(
         ax.add_patch(patch)
         ax.plot(pipe.inner.origin[0], pipe.inner.origin[1], "k+", alpha=0.3)
 
-        plot_pipe_markers(ax, pipe)
+        if show_markers:
+            plot_pipe_markers(ax, pipe)
 
     ax.set_aspect("equal")
     if limits is not None:
@@ -96,6 +98,7 @@ def plot_single_process(
     area_reduction: float | None = None,
     ecc_diff: float | None = None,
     limits: tuple | None = None,
+    show_markers: bool = True,
 ) -> None:
     """Draw pipe1 vs pipe2 comparison on given axis."""
     pipes = [pipe1, pipe2]
@@ -115,11 +118,18 @@ def plot_single_process(
         limits=limits,
         area_reduction=area_reduction,
         ecc_diff=ecc_diff,
+        show_markers=show_markers,
     )
     ax.set_title(title, fontsize=constants.TITLE_FONTSIZE)
 
 
-def plot_process(pipes: list[Pipe]) -> None:
+def plot_process(
+    pipes: list[Pipe],
+    *,
+    show: bool = True,
+    show_markers: bool = True,
+    padding: float = constants.DEFAULT_PADDING,
+):
     """
     Plot pipes.
     - If 1 item: Single plot, filled.
@@ -136,7 +146,7 @@ def plot_process(pipes: list[Pipe]) -> None:
     ecc_diffs = process.eccentricity_diffs
     thickness_reductions = process.thickness_reductions
 
-    common_limits = get_common_limits(pipes, padding=constants.DEFAULT_PADDING)
+    common_limits = get_common_limits(pipes, padding=padding)
 
     if n_items <= 2:
         fig, ax = plt.subplots(figsize=constants.SINGLE_FIGURE_SIZE)
@@ -153,6 +163,7 @@ def plot_process(pipes: list[Pipe]) -> None:
                 area_reduction=reductions[0] if reductions else None,
                 ecc_diff=ecc_diffs[0] if ecc_diffs else None,
                 limits=common_limits,
+                show_markers=show_markers,
             )
         else:
             _draw_on_axis(
@@ -162,6 +173,7 @@ def plot_process(pipes: list[Pipe]) -> None:
                 constants.BASE_COLORS[:n_items],
                 constants.BASE_ALPHAS[:n_items],
                 limits=common_limits,
+                show_markers=show_markers,
             )
             ax.set_title("Pipe Visualization", fontsize=constants.TITLE_FONTSIZE)
 
@@ -187,7 +199,10 @@ def plot_process(pipes: list[Pipe]) -> None:
                 area_reduction=reductions[i] if reductions else None,
                 ecc_diff=ecc_diffs[i] if ecc_diffs else None,
                 limits=common_limits,
+                show_markers=show_markers,
             )
 
     plt.tight_layout()
-    plt.show()
+    if show:
+        plt.show()
+    return fig
