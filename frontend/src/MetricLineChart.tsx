@@ -1,3 +1,5 @@
+import { useState } from "react"
+
 type Series = {
   name: string
   values: number[]
@@ -7,14 +9,24 @@ type Series = {
 type MetricLineChartProps = {
   title: string
   series: Series[]
+  valueFormatter?: (value: number) => string
 }
 
 const WIDTH = 360
 const HEIGHT = 180
-const PAD_LEFT = 32
+const PAD_LEFT = 52
 const PAD_RIGHT = 12
 const PAD_TOP = 12
 const PAD_BOTTOM = 26
+const MARKER_RADIUS = 2.8
+const MARKER_HIT_RADIUS = 9
+
+type HoverPoint = {
+  x: number
+  y: number
+  label: string
+  color: string
+}
 
 function pathFromPoints(points: [number, number][]): string {
   if (points.length === 0) {
@@ -26,7 +38,12 @@ function pathFromPoints(points: [number, number][]): string {
     .join(" ")}`
 }
 
-export function MetricLineChart({ title, series }: MetricLineChartProps): JSX.Element {
+export function MetricLineChart({
+  title,
+  series,
+  valueFormatter,
+}: MetricLineChartProps): JSX.Element {
+  const [hovered, setHovered] = useState<HoverPoint | null>(null)
   const nonEmpty = series.filter((s) => s.values.length > 0)
   const maxPoints = nonEmpty.reduce((acc, s) => Math.max(acc, s.values.length), 0)
 
@@ -51,6 +68,18 @@ export function MetricLineChart({ title, series }: MetricLineChartProps): JSX.El
   const y = (value: number): number =>
     PAD_TOP + ((maxVal - value) / ySpan) * (HEIGHT - PAD_TOP - PAD_BOTTOM)
   const yTicks = [maxVal, (maxVal + minVal) / 2, minVal]
+  const formatValue = (value: number): string =>
+    (valueFormatter ? valueFormatter(value) : value.toFixed(4))
+
+  const tooltipText = hovered?.label ?? ""
+  const tooltipWidth = Math.max(88, tooltipText.length * 7 + 12)
+  const tooltipHeight = 24
+  const tooltipX = hovered
+    ? Math.min(Math.max(hovered.x + 10, PAD_LEFT), WIDTH - tooltipWidth - PAD_RIGHT)
+    : 0
+  const tooltipY = hovered
+    ? Math.min(Math.max(hovered.y - 30, PAD_TOP), HEIGHT - tooltipHeight - PAD_BOTTOM)
+    : 0
 
   return (
     <section className="metric-card">
@@ -107,7 +136,7 @@ export function MetricLineChart({ title, series }: MetricLineChartProps): JSX.El
                 fontSize="10"
                 fill="#475569"
               >
-                {tickValue.toFixed(3)}
+                {formatValue(tickValue)}
               </text>
             </g>
           )
@@ -119,21 +148,56 @@ export function MetricLineChart({ title, series }: MetricLineChartProps): JSX.El
             <g key={s.name}>
               <path d={pathFromPoints(points)} fill="none" stroke={s.color} strokeWidth={2} />
               {points.map(([px, py], index) => (
-                <circle
-                  key={`${s.name}-${index}`}
-                  cx={px}
-                  cy={py}
-                  r={2.8}
-                  fill="#ffffff"
-                  stroke={s.color}
-                  style={{ cursor: "pointer" }}
-                >
-                  <title>{`${s.name} t${index + 1}: ${s.values[index].toFixed(4)}`}</title>
-                </circle>
+                <g key={`${s.name}-${index}`}>
+                  <circle cx={px} cy={py} r={MARKER_RADIUS} fill="#ffffff" stroke={s.color} />
+                  <circle
+                    cx={px}
+                    cy={py}
+                    r={MARKER_HIT_RADIUS}
+                    fill="transparent"
+                    style={{ cursor: "pointer" }}
+                    onMouseEnter={() =>
+                      setHovered({
+                        x: px,
+                        y: py,
+                        label: formatValue(s.values[index]),
+                        color: s.color,
+                      })
+                    }
+                    onMouseMove={() =>
+                      setHovered({
+                        x: px,
+                        y: py,
+                        label: formatValue(s.values[index]),
+                        color: s.color,
+                      })
+                    }
+                    onMouseLeave={() => setHovered(null)}
+                  />
+                </g>
               ))}
             </g>
           )
         })}
+
+        {hovered ? (
+          <g pointerEvents="none">
+            <rect
+              x={tooltipX}
+              y={tooltipY}
+              width={tooltipWidth}
+              height={tooltipHeight}
+              rx={6}
+              fill="#0f172a"
+              fillOpacity={0.92}
+              stroke={hovered.color}
+              strokeWidth={1}
+            />
+            <text x={tooltipX + 8} y={tooltipY + 16} fontSize="13" fill="#f8fafc">
+              {tooltipText}
+            </text>
+          </g>
+        ) : null}
       </svg>
 
       <div className="metric-legend">

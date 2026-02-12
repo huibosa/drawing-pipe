@@ -36,6 +36,14 @@ function computeBounds(pipes: Pipe[], padding: number): Bounds {
   return mergeBounds(all)
 }
 
+function percent1(value: number): string {
+  return `${(value * 100).toFixed(1)}%`
+}
+
+function decimal2(value: number): string {
+  return value.toFixed(2)
+}
+
 function thicknessSeries(metrics: AnalyzeResponse | null): { name: string; values: number[]; color: string }[] {
   if (!metrics || metrics.thickness_reductions.length === 0) {
     return []
@@ -361,6 +369,20 @@ function App(): JSX.Element {
       <aside className="side-panel">
         <h1>Drawing Pipe Web</h1>
 
+        <section className="metrics-sidebar">
+          <MetricLineChart title="Area Reduction Rate" series={areaSeries} valueFormatter={percent1} />
+          <MetricLineChart
+            title="Eccentricity Difference"
+            series={eccSeries}
+            valueFormatter={decimal2}
+          />
+          <MetricLineChart
+            title="Thickness Reduction Rate"
+            series={thickSeries}
+            valueFormatter={percent1}
+          />
+        </section>
+
         <label className="field-label" htmlFor="template-select">
           Template
         </label>
@@ -460,12 +482,6 @@ function App(): JSX.Element {
         >
           Fit View
         </button>
-
-        <section className="metrics-sidebar">
-          <MetricLineChart title="Area plot" series={areaSeries} />
-          <MetricLineChart title="Ecc plot" series={eccSeries} />
-          <MetricLineChart title="Thick plot" series={thickSeries} />
-        </section>
 
         {error ? <p className="error">{error}</p> : null}
       </aside>
