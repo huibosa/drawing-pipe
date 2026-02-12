@@ -38,10 +38,75 @@ type MarkerLockTarget = {
   markerIndex: number
 }
 
+type MarkerDragAxes = {
+  allowX: boolean
+  allowY: boolean
+}
+
+type CenterShapeDragAxes = {
+  outer: MarkerDragAxes
+  inner: MarkerDragAxes
+}
+
 const INPUT_LOCKS_STORAGE_KEY = "drawing-pipe-input-locks"
 
 function lockKey(pipeIndex: number, shapeKey: ShapeKey, target: LockTarget, axis: LockAxis): string {
   return `${pipeIndex}:${shapeKey}:${target}:${axis}`
+}
+
+function buildDefaultLocks(pipes: Pipe[]): InputLockMap {
+  const locks: InputLockMap = {}
+
+  pipes.forEach((pipe, pipeIndex) => {
+    locks[lockKey(pipeIndex, "inner", "origin", "x")] = true
+    locks[lockKey(pipeIndex, "inner", "origin", "y")] = true
+    locks[lockKey(pipeIndex, "outer", "origin", "x")] = true
+
+    if (pipe.outer.shape_type === "CubicSplineShape") {
+      locks[lockKey(pipeIndex, "outer", "v1", "x")] = true
+    }
+    if (pipe.inner.shape_type === "CubicSplineShape") {
+      locks[lockKey(pipeIndex, "inner", "v1", "x")] = true
+    }
+  })
+
+  return locks
+}
+
+type LockEntry = {
+  target: LockTarget
+  axis: LockAxis
+}
+
+function lockEntriesForShape(shape: Shape): LockEntry[] {
+  const entries: LockEntry[] = [
+    { target: "origin", axis: "x" },
+    { target: "origin", axis: "y" },
+  ]
+
+  if (shape.shape_type === "Circle") {
+    entries.push({ target: "diameter", axis: "y" })
+    return entries
+  }
+
+  if (shape.shape_type === "Rect") {
+    entries.push({ target: "length", axis: "y" })
+    entries.push({ target: "width", axis: "y" })
+    entries.push({ target: "fillet_radius", axis: "y" })
+    return entries
+  }
+
+  entries.push({ target: "v1", axis: "x" })
+  entries.push({ target: "v1", axis: "y" })
+  entries.push({ target: "v2", axis: "x" })
+  entries.push({ target: "v2", axis: "y" })
+  entries.push({ target: "v3", axis: "x" })
+  entries.push({ target: "v3", axis: "y" })
+  return entries
+}
+
+function lockKeysForShape(pipeIndex: number, shapeKey: ShapeKey, shape: Shape): string[] {
+  return lockEntriesForShape(shape).map((entry) => lockKey(pipeIndex, shapeKey, entry.target, entry.axis))
 }
 
 function snapStep(value: number, step = 0.05): number {
@@ -275,6 +340,8 @@ function ShapeEditor({
   onPointHoverEnd,
   isLocked,
   onToggleLock,
+  allLocked,
+  onToggleAllLocks,
 }: {
   title: string
   originLabel: string
@@ -293,10 +360,23 @@ function ShapeEditor({
   onPointHoverEnd: () => void
   isLocked: (target: LockTarget, axis: LockAxis) => boolean
   onToggleLock: (target: LockTarget, axis: LockAxis) => void
+  allLocked: boolean
+  onToggleAllLocks: () => void
 }): JSX.Element {
   return (
     <section className="shape-editor">
-      <h4>{title}</h4>
+      <div className="shape-header">
+        <h4>{title}</h4>
+        <button
+          type="button"
+          className="lock-toggle"
+          onClick={onToggleAllLocks}
+          aria-label={`${title} lock all`}
+          title={allLocked ? "Unlock all" : "Lock all"}
+        >
+          {allLocked ? "🔴" : "🟢"}
+        </button>
+      </div>
       <PointFieldRow
         label={originLabel}
         x={shape.origin[0]}
@@ -445,59 +525,99 @@ function App(): JSX.Element {
     setInputLocks((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
-  const isTransitionMarkerDraggable = (transitionIndex: number, marker: MarkerLockTarget): boolean => {
+  const allLocksEnabled = (keys: string[]): boolean => keys.length > 0 && keys.every((key) => Boolean(inputLocks[key]))
+
+  const applyBulkLocks = (keys: string[], lockAll: boolean) => {
+    setInputLocks((prev) => {
+      const updated = { ...prev }
+      keys.forEach((key) => {
+        updated[key] = lockAll
+      })
+      return updated
+    })
+  }
+
+  const toggleBulkLocks = (keys: string[]) => {
+    applyBulkLocks(keys, !allLocksEnabled(keys))
+  }
+
+  const transitionMarkerDragAxes = (transitionIndex: number, marker: MarkerLockTarget): MarkerDragAxes => {
     const pipeIndex = marker.side === "left" ? transitionIndex : transitionIndex + 1
 
     if (marker.kind === "center") {
-      return (
-        !isInputLocked(pipeIndex, "outer", "origin", "x") &&
-        !isInputLocked(pipeIndex, "inner", "origin", "x") &&
-        !isInputLocked(pipeIndex, "outer", "origin", "y") &&
-        !isInputLocked(pipeIndex, "inner", "origin", "y")
-      )
+      return {
+        allowX:
+          !isInputLocked(pipeIndex, "outer", "origin", "x") ||
+          !isInputLocked(pipeIndex, "inner", "origin", "x"),
+        allowY:
+          !isInputLocked(pipeIndex, "outer", "origin", "y") ||
+          !isInputLocked(pipeIndex, "inner", "origin", "y"),
+      }
     }
 
     const pipe = marker.side === "left" ? pipes[transitionIndex] : pipes[transitionIndex + 1]
     if (!pipe) {
-      return false
+      return { allowX: false, allowY: false }
     }
     const shape = pipe[marker.shapeKey]
 
     if (shape.shape_type === "Circle") {
-      return !isInputLocked(pipeIndex, marker.shapeKey, "diameter", "y")
+      const unlocked = !isInputLocked(pipeIndex, marker.shapeKey, "diameter", "y")
+      return { allowX: unlocked, allowY: unlocked }
     }
 
     if (shape.shape_type === "Rect") {
       if (marker.markerIndex === 0 || marker.markerIndex === 4) {
-        return !isInputLocked(pipeIndex, marker.shapeKey, "length", "y")
+        const unlocked = !isInputLocked(pipeIndex, marker.shapeKey, "length", "y")
+        return { allowX: unlocked, allowY: unlocked }
       }
       if (marker.markerIndex === 1 || marker.markerIndex === 3) {
-        return !isInputLocked(pipeIndex, marker.shapeKey, "fillet_radius", "y")
+        const unlocked = !isInputLocked(pipeIndex, marker.shapeKey, "fillet_radius", "y")
+        return { allowX: unlocked, allowY: unlocked }
       }
-      return !isInputLocked(pipeIndex, marker.shapeKey, "width", "y")
+      const unlocked = !isInputLocked(pipeIndex, marker.shapeKey, "width", "y")
+      return { allowX: unlocked, allowY: unlocked }
     }
 
     if (marker.markerIndex === 0 || marker.markerIndex === 4) {
-      return (
-        !isInputLocked(pipeIndex, marker.shapeKey, "v1", "x") &&
-        !isInputLocked(pipeIndex, marker.shapeKey, "v1", "y")
-      )
+      return {
+        allowX: !isInputLocked(pipeIndex, marker.shapeKey, "v1", "x"),
+        allowY: !isInputLocked(pipeIndex, marker.shapeKey, "v1", "y"),
+      }
     }
     if (marker.markerIndex === 1 || marker.markerIndex === 3) {
-      return (
-        !isInputLocked(pipeIndex, marker.shapeKey, "v2", "x") &&
-        !isInputLocked(pipeIndex, marker.shapeKey, "v2", "y")
-      )
+      return {
+        allowX: !isInputLocked(pipeIndex, marker.shapeKey, "v2", "x"),
+        allowY: !isInputLocked(pipeIndex, marker.shapeKey, "v2", "y"),
+      }
     }
-    return (
-      !isInputLocked(pipeIndex, marker.shapeKey, "v3", "x") &&
-      !isInputLocked(pipeIndex, marker.shapeKey, "v3", "y")
-    )
+    return {
+      allowX: !isInputLocked(pipeIndex, marker.shapeKey, "v3", "x"),
+      allowY: !isInputLocked(pipeIndex, marker.shapeKey, "v3", "y"),
+    }
+  }
+
+  const transitionCenterShapeDragAxes = (
+    transitionIndex: number,
+    side: "left" | "right"
+  ): CenterShapeDragAxes => {
+    const pipeIndex = side === "left" ? transitionIndex : transitionIndex + 1
+    return {
+      outer: {
+        allowX: !isInputLocked(pipeIndex, "outer", "origin", "x"),
+        allowY: !isInputLocked(pipeIndex, "outer", "origin", "y"),
+      },
+      inner: {
+        allowX: !isInputLocked(pipeIndex, "inner", "origin", "x"),
+        allowY: !isInputLocked(pipeIndex, "inner", "origin", "y"),
+      },
+    }
   }
 
   const loadTemplate = (name: string) => {
     const nextPipes = (templates[name] ?? []).map(duplicatePipe)
     setPipes(nextPipes)
+    setInputLocks(buildDefaultLocks(nextPipes))
     setViewBounds(computeBounds(nextPipes, padding))
   }
 
@@ -509,6 +629,7 @@ function App(): JSX.Element {
         setTemplateName(firstName)
         const initialPipes = firstName ? data[firstName].map(duplicatePipe) : []
         setPipes(initialPipes)
+        setInputLocks(buildDefaultLocks(initialPipes))
         setViewBounds(computeBounds(initialPipes, padding))
       })
       .catch((err: unknown) => {
@@ -750,7 +871,12 @@ function App(): JSX.Element {
                 bounds={viewBounds}
                 showMarkers={showMarkers}
                 markersDraggable={enableTransitionMarkerDrag}
-                canDragMarker={(marker) => isTransitionMarkerDraggable(index, marker)}
+                canDragMarker={(marker) => {
+                  const axes = transitionMarkerDragAxes(index, marker)
+                  return axes.allowX || axes.allowY
+                }}
+                markerDragAxes={(marker) => transitionMarkerDragAxes(index, marker)}
+                centerDragAxes={(side) => transitionCenterShapeDragAxes(index, side)}
                 markerSize={markerSize}
                 plotLineWidth={plotLineWidth}
                 title={t(locale, "transitionTitle", { from: index + 1, to: index + 2 })}
@@ -797,6 +923,12 @@ function App(): JSX.Element {
             const linkedToHoveredTransition =
               hoveredTransitionCardIndex === index || hoveredTransitionCardIndex === index - 1
             const highlightedByHover = hoveredPipeIndex === index || linkedToHoveredTransition
+            const outerLockKeys = lockKeysForShape(index, "outer", pipe.outer)
+            const innerLockKeys = lockKeysForShape(index, "inner", pipe.inner)
+            const pipeLockKeys = [...outerLockKeys, ...innerLockKeys]
+            const outerAllLocked = allLocksEnabled(outerLockKeys)
+            const innerAllLocked = allLocksEnabled(innerLockKeys)
+            const pipeAllLocked = allLocksEnabled(pipeLockKeys)
 
             return (
               <article
@@ -805,7 +937,18 @@ function App(): JSX.Element {
                 onMouseEnter={() => setHoveredPipeIndex(index)}
                 onMouseLeave={() => setHoveredPipeIndex(null)}
               >
-              <h2>{t(locale, "pipeTitle", { index: index + 1 })}</h2>
+              <div className="pipe-title-row">
+                <h2>{t(locale, "pipeTitle", { index: index + 1 })}</h2>
+                <button
+                  type="button"
+                  className="lock-toggle"
+                  onClick={() => toggleBulkLocks(pipeLockKeys)}
+                  aria-label={`Pipe ${index + 1} lock all`}
+                  title={pipeAllLocked ? "Unlock all" : "Lock all"}
+                >
+                  {pipeAllLocked ? "🔴" : "🟢"}
+                </button>
+              </div>
 
               <label className="field-label compact" htmlFor={`pipe-type-${index}`}>
                 <span>{t(locale, "pipeType")}</span>
@@ -816,15 +959,12 @@ function App(): JSX.Element {
                   onChange={(event) =>
                     (() => {
                       const nextPipe = convertPipeType(pipe, event.target.value as PipeType)
-                      updatePipe(index, nextPipe)
-                      setViewBounds(
-                        computeBounds(
-                          pipes.map((currentPipe, pipeIdx) =>
-                            pipeIdx === index ? nextPipe : currentPipe
-                          ),
-                          padding
-                        )
+                      const nextPipes = pipes.map((currentPipe, pipeIdx) =>
+                        pipeIdx === index ? nextPipe : currentPipe
                       )
+                      setPipes(nextPipes)
+                      setInputLocks(buildDefaultLocks(nextPipes))
+                      setViewBounds(computeBounds(nextPipes, padding))
                     })()
                   }
                 >
@@ -854,6 +994,8 @@ function App(): JSX.Element {
                 onPointHoverEnd={() => setHoveredPointInput(null)}
                 isLocked={(target, axis) => isInputLocked(index, "outer", target, axis)}
                 onToggleLock={(target, axis) => toggleInputLock(index, "outer", target, axis)}
+                allLocked={outerAllLocked}
+                onToggleAllLocks={() => toggleBulkLocks(outerLockKeys)}
               />
               <ShapeEditor
                 title={t(locale, "inner")}
@@ -873,6 +1015,8 @@ function App(): JSX.Element {
                 onPointHoverEnd={() => setHoveredPointInput(null)}
                 isLocked={(target, axis) => isInputLocked(index, "inner", target, axis)}
                 onToggleLock={(target, axis) => toggleInputLock(index, "inner", target, axis)}
+                allLocked={innerAllLocked}
+                onToggleAllLocks={() => toggleBulkLocks(innerLockKeys)}
               />
 
               <div className="pipe-actions">
@@ -882,6 +1026,7 @@ function App(): JSX.Element {
                   onClick={() => {
                     setPipes((prev) => {
                       const next = prev.filter((_, pipeIdx) => pipeIdx !== index)
+                      setInputLocks(buildDefaultLocks(next))
                       setViewBounds(computeBounds(next, padding))
                       return next
                     })
@@ -895,6 +1040,7 @@ function App(): JSX.Element {
                     setPipes((prev) => {
                       const next = [...prev]
                       next.splice(index + 1, 0, duplicatePipe(pipe))
+                      setInputLocks(buildDefaultLocks(next))
                       setViewBounds(computeBounds(next, padding))
                       return next
                     })

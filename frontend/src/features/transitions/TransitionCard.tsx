@@ -17,6 +17,16 @@ type TransitionCardProps = {
     shapeKey: "outer" | "inner"
     markerIndex: number
   }) => boolean
+  markerDragAxes?: (marker: {
+    side: "left" | "right"
+    kind: "shape" | "center"
+    shapeKey: "outer" | "inner"
+    markerIndex: number
+  }) => { allowX: boolean; allowY: boolean }
+  centerDragAxes?: (side: "left" | "right") => {
+    outer: { allowX: boolean; allowY: boolean }
+    inner: { allowX: boolean; allowY: boolean }
+  }
   markerSize: number
   plotLineWidth: number
   areaReduction: number | null
@@ -35,6 +45,7 @@ type TransitionCardProps = {
 }
 
 const SIZE = 260
+const PROXIMITY_HOVER_PX = 10
 const EMPHASIS_SHADOW =
   "drop-shadow(0 0 7px rgba(37, 99, 235, 0.35)) drop-shadow(0 0 3px rgba(56, 189, 248, 0.3))"
 const EMPHASIS_FILL = "rgba(59, 130, 246, 0.14)"
@@ -266,6 +277,41 @@ function movePipeCenter(pipe: Pipe, nextCenter: [number, number]): Pipe {
   }
 }
 
+function movePipeCenterWithAxes(
+  pipe: Pipe,
+  nextCenter: [number, number],
+  axes: {
+    outer: { allowX: boolean; allowY: boolean }
+    inner: { allowX: boolean; allowY: boolean }
+  }
+): Pipe {
+  const [cx, cy] = pipe.outer.origin
+  const targetX = snapStep(nextCenter[0])
+  const targetY = snapStep(nextCenter[1])
+  const dx = targetX - cx
+  const dy = targetY - cy
+
+  const moveShape = (
+    shape: Pipe["outer"],
+    shapeAxes: { allowX: boolean; allowY: boolean }
+  ): Pipe["outer"] => {
+    const [ox, oy] = shape.origin
+    return {
+      ...shape,
+      origin: [
+        shapeAxes.allowX ? snapStep(ox + dx) : ox,
+        shapeAxes.allowY ? snapStep(oy + dy) : oy,
+      ],
+    }
+  }
+
+  return {
+    ...pipe,
+    outer: moveShape(pipe.outer, axes.outer),
+    inner: moveShape(pipe.inner, axes.inner),
+  }
+}
+
 function toWorld(point: [number, number], viewport: Viewport): [number, number] {
   const x = (point[0] - viewport.offsetX) / viewport.scale
   const y = (viewport.offsetY - point[1]) / viewport.scale
@@ -282,6 +328,8 @@ export function TransitionCard({
   showMarkers,
   markersDraggable,
   canDragMarker,
+  markerDragAxes,
+  centerDragAxes,
   markerSize,
   plotLineWidth,
   areaReduction,
@@ -297,6 +345,7 @@ export function TransitionCard({
   const svgRef = useRef<SVGSVGElement | null>(null)
   const draggingPointerId = useRef<number | null>(null)
   const [activeMarker, setActiveMarker] = useState<ActiveMarker | null>(null)
+  const [pointerLocal, setPointerLocal] = useState<[number, number] | null>(null)
   const viewport = viewportFromBounds(bounds)
 
   const allMarkers: MarkerMeta[] = [
@@ -362,21 +411,51 @@ export function TransitionCard({
     const localY = ((clientY - rect.top) / rect.height) * SIZE
     const world = toWorld([localX, localY], viewport)
 
+    const currentMarker = allMarkers.find(
+      (marker) =>
+        marker.side === activeMarker.side &&
+        marker.kind === activeMarker.kind &&
+        marker.shapeKey === activeMarker.shapeKey &&
+        marker.markerIndex === activeMarker.markerIndex
+    )
+    if (!currentMarker) {
+      return
+    }
+
+    const axes = markerDragAxes
+      ? markerDragAxes(activeMarker)
+      : {
+          allowX: !canDragMarker || canDragMarker(activeMarker),
+          allowY: !canDragMarker || canDragMarker(activeMarker),
+        }
+    const constrainedWorld: [number, number] = [
+      axes.allowX ? world[0] : currentMarker.point[0],
+      axes.allowY ? world[1] : currentMarker.point[1],
+    ]
+
     if (activeMarker.side === "left") {
       if (activeMarker.kind === "center") {
-        onLeftPipeChange(movePipeCenter(leftPipe, world))
+        onLeftPipeChange(
+          centerDragAxes
+            ? movePipeCenterWithAxes(leftPipe, constrainedWorld, centerDragAxes("left"))
+            : movePipeCenter(leftPipe, constrainedWorld)
+        )
       } else {
         onLeftPipeChange(
-          updatePipeByMarker(leftPipe, activeMarker.shapeKey, activeMarker.markerIndex, world)
+          updatePipeByMarker(leftPipe, activeMarker.shapeKey, activeMarker.markerIndex, constrainedWorld)
         )
       }
       return
     }
     if (activeMarker.kind === "center") {
-      onRightPipeChange(movePipeCenter(rightPipe, world))
+      onRightPipeChange(
+        centerDragAxes
+          ? movePipeCenterWithAxes(rightPipe, constrainedWorld, centerDragAxes("right"))
+          : movePipeCenter(rightPipe, constrainedWorld)
+      )
     } else {
       onRightPipeChange(
-        updatePipeByMarker(rightPipe, activeMarker.shapeKey, activeMarker.markerIndex, world)
+        updatePipeByMarker(rightPipe, activeMarker.shapeKey, activeMarker.markerIndex, constrainedWorld)
       )
     }
   }
@@ -387,8 +466,29 @@ export function TransitionCard({
   const leftStrokeOpacity = hasSideEmphasis ? (leftEmphasized ? 1 : 0.34) : 1
   const rightStrokeOpacity = hasSideEmphasis ? (rightEmphasized ? 1 : 0.34) : 1
 
+  const markerIsDraggable = (marker: MarkerMeta): boolean =>
+    markersDraggable && (!canDragMarker || canDragMarker(marker))
+
+  let nearestDraggableMarkerKey: string | null = null
+  if (pointerLocal) {
+    let bestDistanceSq = PROXIMITY_HOVER_PX * PROXIMITY_HOVER_PX
+    for (const marker of allMarkers) {
+      if (!markerIsDraggable(marker)) {
+        continue
+      }
+      const [mx, my] = project(marker.point, viewport)
+      const dx = pointerLocal[0] - mx
+      const dy = pointerLocal[1] - my
+      const distanceSq = dx * dx + dy * dy
+      if (distanceSq <= bestDistanceSq) {
+        bestDistanceSq = distanceSq
+        nearestDraggableMarkerKey = marker.key
+      }
+    }
+  }
+
   const beginMarkerDrag = (event: ReactPointerEvent<SVGElement>, marker: MarkerMeta) => {
-    if (!markersDraggable || (canDragMarker && !canDragMarker(marker))) {
+    if (!markerIsDraggable(marker)) {
       return
     }
     event.preventDefault()
@@ -415,7 +515,17 @@ export function TransitionCard({
         height={SIZE}
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         className="transition-svg"
-        onPointerMove={(event) => updateFromPointer(event.clientX, event.clientY)}
+        onPointerMove={(event) => {
+          updateFromPointer(event.clientX, event.clientY)
+          const rect = svgRef.current?.getBoundingClientRect()
+          if (!rect || rect.width <= 0 || rect.height <= 0) {
+            return
+          }
+          const localX = ((event.clientX - rect.left) / rect.width) * SIZE
+          const localY = ((event.clientY - rect.top) / rect.height) * SIZE
+          setPointerLocal([localX, localY])
+        }}
+        onPointerLeave={() => setPointerLocal(null)}
         onPointerUp={() => {
           if (draggingPointerId.current !== null) {
             svgRef.current?.releasePointerCapture(draggingPointerId.current)
@@ -497,11 +607,18 @@ export function TransitionCard({
                 marker.kind === "shape" &&
                 hoveredThicknessMarkerIndex !== null &&
                 marker.markerIndex === hoveredThicknessMarkerIndex
-              const markerRadius = inputHovered ? markerSize * 2.1 : thicknessHovered ? markerSize * 1.7 : markerSize
+              const proximityHovered = marker.key === nearestDraggableMarkerKey
+              const markerRadius = inputHovered
+                ? markerSize * 2.1
+                : thicknessHovered
+                  ? markerSize * 1.7
+                  : proximityHovered
+                    ? markerSize * 1.6
+                    : markerSize
               const crossHalfSize = markerRadius * 0.82
               const crossHovered = inputHovered || thicknessHovered
               return (
-                <g key={marker.key} style={{ cursor: markersDraggable ? "grab" : "default" }}>
+                <g key={marker.key} style={{ cursor: "default" }}>
                   {crossHovered ? (
                     <>
                       <line
