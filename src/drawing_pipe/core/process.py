@@ -1,4 +1,4 @@
-from pipes import Pipe
+from drawing_pipe.core.pipes import Pipe
 
 import numpy as np
 

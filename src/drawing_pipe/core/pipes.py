@@ -1,7 +1,7 @@
 import numpy as np
 from pydantic import BaseModel, ConfigDict
 
-from shapes import Circle, CubicSplineShape, Ellipse, Rect
+from drawing_pipe.core.shapes import Circle, CubicSplineShape, Ellipse, Rect
 
 
 class Pipe(BaseModel):

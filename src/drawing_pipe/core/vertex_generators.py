@@ -4,7 +4,7 @@ from typing import Any, Callable, Type
 
 import numpy as np
 
-from shapes import Circle, CubicSplineShape, Ellipse, Rect, Shape
+from drawing_pipe.core.shapes import Circle, CubicSplineShape, Ellipse, Rect, Shape
 
 _vertex_generators: dict[Type, Callable[[Any], np.ndarray]] = {}
 

@@ -1,0 +1,35 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: drawing-pipe-backend
+    expose:
+      - "8000"
+    environment:
+      - ALLOWED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - drawing-pipe-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: drawing-pipe-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - drawing-pipe-network
+
+networks:
+  drawing-pipe-network:
+    driver: bridge

@@ -1,6 +1,6 @@
 # Drawing Pipe Process Explorer
 
-An interactive geometric library and visualization tool for calculating pipe properties (area, eccentricity, vertex distances, thickness) through a manufacturing process.
+An interactive geometric library and web app for calculating pipe properties (area, eccentricity, vertex distances, thickness) through a manufacturing process.
 
 ## Features
 
@@ -17,38 +17,58 @@ An interactive geometric library and visualization tool for calculating pipe pro
 ## Installation
 
 ```bash
-# Using uv (recommended)
-uv pip install -e .
-
-# Using pip
-pip install -e .
+# Sync dependencies
+uv sync
 ```
 
 ## Usage
 
-Run the Streamlit app:
+Run backend:
 
 ```bash
-uv run streamlit run streamlit_app.py
+ALLOWED_ORIGINS="http://localhost:5173,http://127.0.0.1:5173" uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Or simply:
+Run frontend:
 
 ```bash
-uv run streamlit run main.py
+cd frontend
+bun install
+# Optional for remote access; defaults to current hostname:8000
+# export VITE_API_BASE_URL="http://<server-ip>:8000"
+bun run dev
+```
+
+## Fullstack App
+
+The app uses a FastAPI backend and React frontend for interactive drag-to-edit.
+
+- Backend entrypoint: `backend/main.py`
+- Frontend app: `frontend/`
+
+Run backend:
+
+```bash
+uv run uvicorn backend.main:app --reload
+```
+
+Run frontend:
+
+```bash
+cd frontend
+bun install
+bun run dev
 ```
 
 ## Project Structure
 
 ```
 drawing_pipe/
-├── streamlit_app.py     # Main Streamlit UI application
-├── main.py              # Entry point
-├── pipes.py             # Pipe model definitions (CircleCircle, RectRect, SplineSpline)
-├── shapes.py            # Shape models (Circle, Rect, CubicSplineShape)
-├── process.py           # Process analysis calculations
-├── fixtures.py          # Pre-defined pipe templates
-├── visualization/       # Visualization and plotting utilities
+├── backend/             # FastAPI backend
+├── frontend/            # React frontend
+├── src/drawing_pipe/
+│   ├── api/             # FastAPI app/domain/schemas
+│   └── core/            # Shape, pipe, process domain models
 └── images/              # Screenshots and assets
 ```
 
@@ -62,20 +82,20 @@ drawing_pipe/
 
 ## API Reference
 
-### Shapes (`shapes.py`)
+### Shapes (`src/drawing_pipe/core/shapes.py`)
 
 - `Circle`: Defined by `origin` (x, y) and `diameter`
 - `Rect`: Defined by `origin`, `length`, `width`, and `fillet_radius`
 - `CubicSplineShape`: Defined by `origin` and control points `v1`, `v2`, `v3`
 
-### Pipes (`pipes.py`)
+### Pipes (`src/drawing_pipe/core/pipes.py`)
 
 All pipe types support:
 - `area`: Cross-sectional area (outer - inner)
 - `eccentricity`: Distance between outer and inner origins
 - `thickness`: Array of 5 thickness values at key vertices
 
-### Process Analysis (`process.py`)
+### Process Analysis (`src/drawing_pipe/core/process.py`)
 
 `ProcessAnalysis` provides:
 - `area_reductions`: Percentage area reduction between consecutive pipes

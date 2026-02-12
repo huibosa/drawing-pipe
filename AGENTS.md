@@ -1,103 +1,171 @@
-# AGENTS.md - Drawing Pipe Project Guidelines
+# AGENTS.md - Drawing Pipe Repository Guide
 
-## NOTE:
-- Do NOT create `.venv` or install packages via `pip` to the current folder
-- Do NOT Add x and y axis label to any matplotlib axes
+This file is for coding agents operating in this repository.
+Follow these rules unless the user explicitly overrides them.
 
-## Project Overview
-Geometric library for calculating pipe properties (area, eccentricity, vertex distances, thickness) using shapes (Circle, Rect, Square, Ellipse, CubicSpline).
+## Project Scope
 
-## Environment & Tools
-- **Python**: 3.10+
-- **Package Manager**: `uv` (preferred over pip)
-- **Linter/Formatter**: `ruff`
-- **Dependencies**: `numpy`, `scipy`
+- Python geometry/process domain (`src/drawing_pipe/core/`).
+- FastAPI backend (`backend/`) + React/Vite frontend (`frontend/`).
 
-## Lint, and Test Commands
+## Quick Start for Agents
 
-### Run Linting
 ```bash
+# 1) Sync Python dependencies
+uv sync
+
+# 2) Run backend API
+uv run uvicorn backend.main:app --reload
+
+# 3) Run frontend dev server
+cd frontend && bun install && bun run dev
+
+# 4) Validate changes before finishing
+ruff check . && uv run python -m py_compile backend/main.py src/drawing_pipe/api/domain.py && cd frontend && bun run build
+```
+
+## Hard Rules for This Repo
+
+- Use `uv` for Python commands.
+- Use `bun` for frontend commands.
+- Do **not** create `.venv`.
+- Do **not** install with `pip` in this repo.
+- Keep code/docs/commits in English.
+
+## Rule File Discovery
+
+- Cursor rules: none found (`.cursor/rules/` and `.cursorrules` absent).
+- Copilot rules: none found (`.github/copilot-instructions.md` absent).
+- If those files appear later, treat them as higher-priority instructions.
+
+## Important Paths
+
+- `backend/main.py`: FastAPI app entrypoint.
+- `src/drawing_pipe/api/app.py`: FastAPI app construction.
+- `src/drawing_pipe/api/domain.py`: payload/domain conversion.
+- `src/drawing_pipe/api/schemas.py`: API models.
+- `src/drawing_pipe/core/`: shape/pipe/process core domain.
+- `frontend/src/app/App.tsx`: main frontend state/UI.
+- `frontend/src/features/transitions/TransitionCard.tsx`: transition plot + drag markers.
+- `frontend/src/shared/lib/geometry.ts`: shape vertices/projection helpers.
+
+## Build / Lint / Test Commands
+
+### Python and Backend
+
+```bash
+# Sync Python dependencies
+uv sync
+
+# Run FastAPI backend
+uv run uvicorn backend.main:app --reload
+
+# Syntax check selected modules
+uv run python -m py_compile backend/main.py src/drawing_pipe/api/domain.py
+```
+
+### Frontend
+
+```bash
+# Install deps
+cd frontend && bun install
+
+# Dev server
+cd frontend && bun run dev
+
+# Production build (includes TS build)
+cd frontend && bun run build
+
+# Preview
+cd frontend && bun run preview
+```
+
+### Lint / Format
+
+```bash
+# Python lint
 ruff check .
-ruff check --fix .  # Auto-fix issues
-```
 
-### Run Formatting
-```bash
+# Python lint with fixes
+ruff check --fix .
+
+# Python format
 ruff format .
+
+# Frontend type + bundle validation
+cd frontend && bun run build
 ```
 
-### Execute Code
+### Tests
+
+Current repo state: no committed `tests/` directory yet.
+
+When tests exist, use `pytest` via `uv`:
+
 ```bash
-uv run python main.py
+# All tests
+uv run pytest -q
+
+# Single file
+uv run pytest tests/test_process.py -q
+
+# Single test function
+uv run pytest tests/test_process.py::test_area_reduction -q
+
+# Single test by expression
+uv run pytest tests/test_process.py -k "circle and reduction" -q
 ```
 
-### Run a Single Test (if using pytest)
-```bash
-pytest tests/test_file.py::TestClass::test_method -v
-```
+If frontend tests are added later, use `bun run test` plus file/name filters.
 
-### Run All Tests
-```bash
-pytest tests/ -v
-```
+## Python Style
 
-## Code Style Guidelines
+- Prefer explicit type hints for public functions/methods.
+- Keep domain logic pure and deterministic.
+- Use Pydantic validation at model/API boundaries.
+- Avoid silent coercion or silent failure paths.
+- Keep geometry naming clear (`origin`, `diameter`, `length`, `width`, `v1/v2/v3`).
 
-### Immutability
-- Use `@dataclass(frozen=True)` for all data models (shapes, pipes)
-- Avoid mutable state; use dataclasses for type safety and hashability
+### Python Imports
 
-### Abstract Base Classes
-- Use `ABC` for base shape hierarchy
-- Mark properties/methods as `@abstractmethod`
-- Example in `shapes.py`:
-  ```python
-  class Shape(ABC):
-      origin: tuple[float, float]
+- Order: stdlib -> third-party -> local imports.
+- Keep import groups sorted (ruff-compatible).
+- Follow existing local absolute import style where used.
 
-      @property
-      @abstractmethod
-      def area(self) -> float: ...
-  ```
+## TypeScript / React Style
 
-### Type Hints
-- Required for all function signatures
-- Use `tuple[float, float]` for coordinates, not `Tuple[float, float]`
-- Return types must be specified (e.g., `-> np.ndarray`)
+- Keep strict typing; avoid `any`.
+- Use discriminated unions for shape/pipe variants.
+- Prefer pure helper functions for math/geometry transformations.
+- Keep component props typed and minimal.
+- Keep drag behavior deterministic and frame-safe.
 
-### Coordinate Naming Conventions
-- `ox, oy`: outer origin x/y
-- `ix, iy`: inner origin x/y
-- `l_o, w_o`: outer length/width
-- `s_i`: inner side_length
-- `r_o, r_i`: outer/inner fillet_radius
+## Error Handling
 
-### Vertex Conventions
-- Shapes follow 5-vertex symmetry: Top(0), Top-Right(1), Right(2), Bottom-Right(3), Bottom(4)
-- CubicSplineShape vertices are relative to origin; add origin offset when computing
-- Index 0 (Top) and 4 (Bottom) are on y-axis; Index 2 (Right) is on x-axis
+- Backend should return clear, actionable errors for invalid payloads.
+- Frontend should surface API errors in UI, not console-only.
+- Validate user-edited values close to update boundaries.
 
-### Import Style
-- Standard library first, then third-party (`numpy`, `scipy`)
-- Relative imports for intra-package imports
-- Example:
-  ```python
-  from dataclasses import dataclass, field
-  import numpy as np
-  from scipy.interpolate import CubicSpline
-  from shapes import Circle, Rect
-  ```
+## UI Behavior Conventions
 
-### Error Handling
-- Raise `NotImplementedError` for missing implementations (e.g., vertex generators)
-- Avoid silent failures; validate inputs where reasonable
+- Preserve existing interaction constraints unless user asks to change:
+  - center `x` lock behavior,
+  - drag step snapping,
+  - debounce analysis behavior,
+  - marker visibility and style controls.
+- Keep transition plot equal-axis projection to avoid distortion.
 
-## Git Commit Format
-- **Format**: `type(scope): subject` (e.g., `feat(pipes):`, `fix(core):`, `chore:`)
-- **Subject**: Max 50 chars, imperative mood, no trailing period
-- **Examples**:
-  ```
-  feat(pipes): add thickness property with axial distance calculation
-  fix(shapes): correct spline vertex calculation
-  chore(visualization): remove duplicate entrypoint
-  ```
+## Commit Guidelines
+
+- Use: `type(scope): subject`.
+- Subject: imperative, concise, no trailing period.
+- Common types: `feat`, `fix`, `refactor`, `style`, `test`, `docs`, `chore`.
+- Keep commits atomic and logically grouped.
+
+## Agent Workflow Checklist
+
+1. Read relevant files before editing.
+2. Make minimal coherent changes.
+3. Run relevant checks (`ruff`, `py_compile`, `bun run build`).
+4. Do not commit generated outputs (`frontend/dist`, cache files).
+5. Summarize changed files and verification commands in final response.
