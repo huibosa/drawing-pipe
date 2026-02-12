@@ -38,6 +38,28 @@ Or simply:
 uv run streamlit run main.py
 ```
 
+## Fullstack Rewrite (WIP)
+
+A new FastAPI backend and React frontend foundation is available for the
+interactive drag-to-edit rewrite.
+
+- Backend entrypoint: `backend/main.py`
+- Frontend app: `frontend/`
+
+Run backend:
+
+```bash
+uv run uvicorn backend.main:app --reload
+```
+
+Run frontend:
+
+```bash
+cd frontend
+bun install
+bun run dev
+```
+
 ## Project Structure
 
 ```

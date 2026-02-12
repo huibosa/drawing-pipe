@@ -1,0 +1,199 @@
+:root {
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  color: #1b1d1f;
+  background: #f4f6f8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+}
+
+.side-panel {
+  padding: 24px;
+  border-right: 1px solid #d2dbe6;
+  background: linear-gradient(180deg, #e9f0f6, #f7fafc);
+}
+
+.side-panel h1 {
+  margin: 0 0 16px;
+  font-size: 1.35rem;
+}
+
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.field-label.compact {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.field-input {
+  width: 100%;
+  height: 36px;
+  border: 1px solid #b8c5d6;
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: #fff;
+}
+
+.range-input {
+  width: 100%;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+.main-area {
+  padding: 20px;
+  display: grid;
+  gap: 18px;
+}
+
+.transition-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(290px, 1fr);
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.transition-card {
+  border: 1px solid #d2dbe6;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
+}
+
+.transition-card h3 {
+  margin: 4px 0 10px;
+  font-size: 1rem;
+}
+
+.transition-svg {
+  width: 100%;
+  height: auto;
+  border: 1px solid #e2e7ef;
+  border-radius: 8px;
+  background: #fafcff;
+}
+
+.transition-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+.pipe-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(360px, 1fr);
+  gap: 12px;
+  align-items: start;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.pipe-card {
+  border: 1px solid #d2dbe6;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+  display: grid;
+  gap: 10px;
+}
+
+.pipe-card h2 {
+  margin: 0;
+  font-size: 1.45rem;
+}
+
+.pipe-stage {
+  border: 1px solid #d5deea;
+  border-radius: 8px;
+}
+
+.shape-editor {
+  border: 1px solid #e3e8ef;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fcfdff;
+}
+
+.shape-editor h4 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+}
+
+.xy-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.pipe-status {
+  margin: 0;
+  color: #506070;
+  font-size: 0.9rem;
+}
+
+.pipe-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pipe-actions button {
+  border: none;
+  border-radius: 8px;
+  height: 34px;
+  font-size: 1.2rem;
+  background: #e7eef7;
+  color: #12355f;
+  cursor: pointer;
+}
+
+.pipe-actions button.danger {
+  background: #fce8e8;
+  color: #7f1d1d;
+}
+
+.error {
+  color: #9f2424;
+  font-weight: 600;
+}
+
+@media (max-width: 960px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .side-panel {
+    border-right: none;
+    border-bottom: 1px solid #d2dbe6;
+  }
+}
