@@ -276,6 +276,12 @@ function App(): JSX.Element {
   const [plotLineWidth, setPlotLineWidth] = useState(1.5)
   const [viewBounds, setViewBounds] = useState<Bounds>(DEFAULT_BOUNDS)
 
+  const loadTemplate = (name: string) => {
+    const nextPipes = (templates[name] ?? []).map(duplicatePipe).map(lockPipeCenterX)
+    setPipes(nextPipes)
+    setViewBounds(computeBounds(nextPipes, padding))
+  }
+
   useEffect(() => {
     fetchTemplates()
       .then((data) => {
@@ -358,24 +364,34 @@ function App(): JSX.Element {
         <label className="field-label" htmlFor="template-select">
           Template
         </label>
-        <select
-          id="template-select"
-          className="field-input"
-          value={templateName}
-          onChange={(event) => {
-            const value = event.target.value
-            setTemplateName(value)
-            const nextPipes = (templates[value] ?? []).map(duplicatePipe).map(lockPipeCenterX)
-            setPipes(nextPipes)
-            setViewBounds(computeBounds(nextPipes, padding))
-          }}
-        >
-          {Object.keys(templates).map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
+        <div className="template-row">
+          <select
+            id="template-select"
+            className="field-input"
+            value={templateName}
+            onChange={(event) => {
+              const value = event.target.value
+              setTemplateName(value)
+              loadTemplate(value)
+            }}
+          >
+            {Object.keys(templates).map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="template-refresh"
+            onClick={() => loadTemplate(templateName)}
+            disabled={!templateName}
+            aria-label="Reload selected template"
+            title="Reload template"
+          >
+            Reload
+          </button>
+        </div>
 
         <label className="checkbox-row">
           <input

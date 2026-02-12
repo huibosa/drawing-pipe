@@ -20,13 +20,53 @@ function rectVertices(shape: RectShape): [number, number][] {
   const [ox, oy] = shape.origin
   const halfW = shape.width / 2
   const halfL = shape.length / 2
-  return [
-    [ox - halfW, oy + halfL],
-    [ox + halfW, oy + halfL],
-    [ox + halfW, oy - halfL],
-    [ox - halfW, oy - halfL],
-    [ox - halfW, oy + halfL],
-  ]
+  const left = ox - halfW
+  const right = ox + halfW
+  const top = oy + halfL
+  const bottom = oy - halfL
+
+  const radius = Math.max(0, Math.min(shape.fillet_radius, halfW, halfL))
+  if (radius <= 0) {
+    return [
+      [left, top],
+      [right, top],
+      [right, bottom],
+      [left, bottom],
+      [left, top],
+    ]
+  }
+
+  const cornerSegments = 12
+  const points: [number, number][] = []
+
+  const pushArc = (
+    cx: number,
+    cy: number,
+    startAngle: number,
+    endAngle: number,
+    includeStart: boolean,
+  ) => {
+    const steps = includeStart ? cornerSegments : cornerSegments - 1
+    const firstIndex = includeStart ? 0 : 1
+    for (let index = firstIndex; index <= steps; index += 1) {
+      const t = index / cornerSegments
+      const angle = startAngle + (endAngle - startAngle) * t
+      points.push([cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)])
+    }
+  }
+
+  points.push([left + radius, top])
+  points.push([right - radius, top])
+  pushArc(right - radius, top - radius, Math.PI / 2, 0, false)
+  points.push([right, bottom + radius])
+  pushArc(right - radius, bottom + radius, 0, -Math.PI / 2, false)
+  points.push([left + radius, bottom])
+  pushArc(left + radius, bottom + radius, -Math.PI / 2, -Math.PI, false)
+  points.push([left, top - radius])
+  pushArc(left + radius, top - radius, Math.PI, Math.PI / 2, false)
+  points.push(points[0])
+
+  return points
 }
 
 function splineVertices(shape: SplineShape): [number, number][] {

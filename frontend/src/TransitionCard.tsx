@@ -95,12 +95,16 @@ function markerPoints(pipe: Pipe, key: "outer" | "inner"): [number, number][] {
 
   if (shape.shape_type === "Rect") {
     const [ox, oy] = shape.origin
+    const halfW = shape.width / 2
+    const halfL = shape.length / 2
+    const r = Math.max(0.01, Math.min(shape.fillet_radius, halfW, halfL))
+    const cornerFactor = 1 - Math.SQRT1_2
     return [
-      [ox, oy + shape.length / 2],
-      [ox + shape.width / 2 - shape.fillet_radius, oy + shape.length / 2 - shape.fillet_radius],
-      [ox + shape.width / 2, oy],
-      [ox + shape.width / 2 - shape.fillet_radius, oy - shape.length / 2 + shape.fillet_radius],
-      [ox, oy - shape.length / 2],
+      [ox, oy + halfL],
+      [ox + halfW - cornerFactor * r, oy + halfL - cornerFactor * r],
+      [ox + halfW, oy],
+      [ox + halfW - cornerFactor * r, oy - halfL + cornerFactor * r],
+      [ox, oy - halfL],
     ]
   }
 
@@ -129,21 +133,29 @@ function updateShapeByMarker(
 
   if (shape.shape_type === "Rect") {
     const [ox, oy] = shape.origin
+    const halfW = shape.width / 2
+    const halfL = shape.length / 2
+
     if (markerIndex === 0 || markerIndex === 4) {
       const nextLength = Math.max(0.01, 2 * Math.abs(snapped[1] - oy))
       return { ...shape, length: nextLength }
     }
-    const nextWidth = Math.max(0.01, 2 * Math.abs(snapped[0] - ox))
-    if (markerIndex === 2) {
-      return { ...shape, width: nextWidth }
+
+    if (markerIndex === 1 || markerIndex === 3) {
+      const cornerFactor = 1 - Math.SQRT1_2
+      const deltaX = snapped[0] - ox
+      const deltaY = snapped[1] - oy
+      const radiusFromX = (halfW - deltaX) / cornerFactor
+      const radiusFromY =
+        markerIndex === 1 ? (halfL - deltaY) / cornerFactor : (halfL + deltaY) / cornerFactor
+      const radiusRaw = (radiusFromX + radiusFromY) / 2
+      const maxRadius = Math.max(0.01, Math.min(halfW, halfL))
+      const filletRadius = Math.max(0.01, Math.min(radiusRaw, maxRadius))
+      return { ...shape, fillet_radius: filletRadius }
     }
 
-    const nextLength = Math.max(0.01, 2 * Math.abs(snapped[1] - oy))
-    return {
-      ...shape,
-      width: nextWidth,
-      length: nextLength,
-    }
+    const nextWidth = Math.max(0.01, 2 * Math.abs(snapped[0] - ox))
+    return { ...shape, width: nextWidth }
   }
 
   const [ox, oy] = shape.origin

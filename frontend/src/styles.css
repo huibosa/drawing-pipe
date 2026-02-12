@@ -52,6 +52,29 @@ body {
   background: #fff;
 }
 
+.template-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.template-refresh {
+  height: 36px;
+  border: 1px solid #b8c5d6;
+  border-radius: 6px;
+  padding: 0 10px;
+  background: #ffffff;
+  color: #1f3f66;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.template-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .range-input {
   width: 100%;
 }

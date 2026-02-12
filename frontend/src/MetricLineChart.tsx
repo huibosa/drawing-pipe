@@ -50,6 +50,7 @@ export function MetricLineChart({ title, series }: MetricLineChartProps): JSX.El
   const x = (index: number): number => PAD_LEFT + (index / xSpan) * (WIDTH - PAD_LEFT - PAD_RIGHT)
   const y = (value: number): number =>
     PAD_TOP + ((maxVal - value) / ySpan) * (HEIGHT - PAD_TOP - PAD_BOTTOM)
+  const yTicks = [maxVal, (maxVal + minVal) / 2, minVal]
 
   return (
     <section className="metric-card">
@@ -84,6 +85,31 @@ export function MetricLineChart({ title, series }: MetricLineChartProps): JSX.El
               stroke="#eef2f7"
               strokeWidth={1}
             />
+          )
+        })}
+
+        {yTicks.map((tickValue) => {
+          const py = y(tickValue)
+          return (
+            <g key={`ytick-${tickValue.toFixed(6)}`}>
+              <line
+                x1={PAD_LEFT - 5}
+                y1={py}
+                x2={PAD_LEFT}
+                y2={py}
+                stroke="#94a3b8"
+                strokeWidth={1}
+              />
+              <text
+                x={PAD_LEFT - 8}
+                y={py + 3}
+                textAnchor="end"
+                fontSize="10"
+                fill="#475569"
+              >
+                {tickValue.toFixed(3)}
+              </text>
+            </g>
           )
         })}
 
