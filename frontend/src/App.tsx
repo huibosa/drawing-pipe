@@ -547,7 +547,12 @@ function App(): JSX.Element {
                 areaReduction={metrics?.area_reductions[index] ?? null}
                 eccentricityDiff={metrics?.eccentricity_diffs[index] ?? null}
                 thicknessReduction={metrics?.thickness_reductions[index] ?? null}
-                highlighted={hoveredTransitionIndex === index}
+                highlighted={
+                  hoveredTransitionIndex === index ||
+                  hoveredTransitionCardIndex === index ||
+                  hoveredPipeIndex === index ||
+                  hoveredPipeIndex === index + 1
+                }
                 emphasizedSide={
                   hoveredPipeIndex === index
                     ? "left"
