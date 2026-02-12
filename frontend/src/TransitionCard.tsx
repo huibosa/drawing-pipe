@@ -23,6 +23,7 @@ type TransitionCardProps = {
     shapeKey: "outer" | "inner"
     pointKey: "origin" | "v1" | "v2" | "v3"
   } | null
+  hoveredThicknessMarkerIndex?: number | null
   onCardMouseEnter?: () => void
   onCardMouseLeave?: () => void
 }
@@ -280,6 +281,7 @@ export function TransitionCard({
   highlighted = false,
   emphasizedSide = null,
   hoveredInputTarget = null,
+  hoveredThicknessMarkerIndex = null,
   onCardMouseEnter,
   onCardMouseLeave,
 }: TransitionCardProps): JSX.Element {
@@ -482,11 +484,16 @@ export function TransitionCard({
           ? allMarkers.map((marker) => {
               const [x, y] = project(marker.point, viewport)
               const inputHovered = markerMatchesHoveredInput(marker, hoveredInputTarget)
-              const markerRadius = inputHovered ? markerSize * 2.1 : markerSize
+              const thicknessHovered =
+                marker.kind === "shape" &&
+                hoveredThicknessMarkerIndex !== null &&
+                marker.markerIndex === hoveredThicknessMarkerIndex
+              const markerRadius = inputHovered ? markerSize * 2.1 : thicknessHovered ? markerSize * 1.7 : markerSize
               const crossHalfSize = markerRadius * 0.82
+              const crossHovered = inputHovered || thicknessHovered
               return (
                 <g key={marker.key} style={{ cursor: markersDraggable ? "grab" : "default" }}>
-                  {inputHovered ? (
+                  {crossHovered ? (
                     <>
                       <line
                         x1={x - crossHalfSize}

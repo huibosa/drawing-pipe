@@ -22,6 +22,11 @@ type HoveredPointInput = {
   pointKey: PointKey
 }
 
+type HoveredThicknessPoint = {
+  transitionIndex: number
+  markerIndex: number
+}
+
 function snapStep(value: number, step = 0.05): number {
   return Number((Math.round(value / step) * step).toFixed(6))
 }
@@ -339,6 +344,7 @@ function App(): JSX.Element {
   const [hoveredPipeIndex, setHoveredPipeIndex] = useState<number | null>(null)
   const [hoveredTransitionCardIndex, setHoveredTransitionCardIndex] = useState<number | null>(null)
   const [hoveredPointInput, setHoveredPointInput] = useState<HoveredPointInput | null>(null)
+  const [hoveredThicknessPoint, setHoveredThicknessPoint] = useState<HoveredThicknessPoint | null>(null)
 
   useEffect(() => {
     window.localStorage.setItem(LOCALE_STORAGE_KEY, locale)
@@ -463,6 +469,16 @@ function App(): JSX.Element {
             series={thickSeries}
             valueFormatter={percent1}
             onHoverIndexChange={setHoveredTransitionIndex}
+            onHoverPointChange={(point) => {
+              if (!point) {
+                setHoveredThicknessPoint(null)
+                return
+              }
+              setHoveredThicknessPoint({
+                transitionIndex: point.pointIndex,
+                markerIndex: point.seriesIndex,
+              })
+            }}
             emptyText={t(locale, "notEnoughData")}
           />
         </section>
@@ -616,6 +632,11 @@ function App(): JSX.Element {
                         shapeKey: hoveredPointInput.shapeKey,
                         pointKey: hoveredPointInput.pointKey,
                       }
+                    : null
+                }
+                hoveredThicknessMarkerIndex={
+                  hoveredThicknessPoint?.transitionIndex === index
+                    ? hoveredThicknessPoint.markerIndex
                     : null
                 }
                 onCardMouseEnter={() => setHoveredTransitionCardIndex(index)}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 type Series = {
   name: string
@@ -11,6 +11,9 @@ type MetricLineChartProps = {
   series: Series[]
   valueFormatter?: (value: number) => string
   onHoverIndexChange?: (index: number | null) => void
+  onHoverPointChange?:
+    | ((point: { pointIndex: number; seriesIndex: number; seriesName: string } | null) => void)
+    | undefined
   emptyText?: string
 }
 
@@ -46,16 +49,10 @@ export function MetricLineChart({
   series,
   valueFormatter,
   onHoverIndexChange,
+  onHoverPointChange,
   emptyText = "Not enough data",
 }: MetricLineChartProps): JSX.Element {
   const [hovered, setHovered] = useState<HoverPoint | null>(null)
-
-  useEffect(
-    () => () => {
-      onHoverIndexChange?.(null)
-    },
-    [onHoverIndexChange]
-  )
   const nonEmpty = series.filter((s) => s.values.length > 0)
   const maxPoints = nonEmpty.reduce((acc, s) => Math.max(acc, s.values.length), 0)
 
@@ -104,6 +101,7 @@ export function MetricLineChart({
         onMouseLeave={() => {
           setHovered(null)
           onHoverIndexChange?.(null)
+          onHoverPointChange?.(null)
         }}
       >
         <line
@@ -163,7 +161,7 @@ export function MetricLineChart({
           )
         })}
 
-        {nonEmpty.map((s) => {
+        {nonEmpty.map((s, seriesIndex) => {
           const points = s.values.map((v, i) => [x(i), y(v)] as [number, number])
           return (
             <g key={s.name}>
@@ -187,6 +185,7 @@ export function MetricLineChart({
                           transitionIndex: index,
                         })
                         onHoverIndexChange?.(index)
+                        onHoverPointChange?.({ pointIndex: index, seriesIndex, seriesName: s.name })
                       })()
                     }
                     onMouseMove={() =>
@@ -199,11 +198,13 @@ export function MetricLineChart({
                           transitionIndex: index,
                         })
                         onHoverIndexChange?.(index)
+                        onHoverPointChange?.({ pointIndex: index, seriesIndex, seriesName: s.name })
                       })()
                     }
                     onMouseLeave={() => {
                       setHovered(null)
                       onHoverIndexChange?.(null)
+                      onHoverPointChange?.(null)
                     }}
                   />
                 </g>
