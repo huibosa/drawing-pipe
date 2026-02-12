@@ -11,6 +11,12 @@ type TransitionCardProps = {
   bounds: Bounds
   showMarkers: boolean
   markersDraggable: boolean
+  canDragMarker?: (marker: {
+    side: "left" | "right"
+    kind: "shape" | "center"
+    shapeKey: "outer" | "inner"
+    markerIndex: number
+  }) => boolean
   markerSize: number
   plotLineWidth: number
   areaReduction: number | null
@@ -239,15 +245,17 @@ function updatePipeByMarker(
 }
 
 function movePipeCenter(pipe: Pipe, nextCenter: [number, number]): Pipe {
-  const [, cy] = pipe.outer.origin
+  const [cx, cy] = pipe.outer.origin
+  const targetX = snapStep(nextCenter[0])
   const targetY = snapStep(nextCenter[1])
+  const dx = targetX - cx
   const dy = targetY - cy
 
   const moveShape = (shape: Pipe["outer"]): Pipe["outer"] => {
-    const [, oy] = shape.origin
+    const [ox, oy] = shape.origin
     return {
       ...shape,
-      origin: [0, snapStep(oy + dy)],
+      origin: [snapStep(ox + dx), snapStep(oy + dy)],
     }
   }
 
@@ -273,6 +281,7 @@ export function TransitionCard({
   bounds,
   showMarkers,
   markersDraggable,
+  canDragMarker,
   markerSize,
   plotLineWidth,
   areaReduction,
@@ -379,7 +388,7 @@ export function TransitionCard({
   const rightStrokeOpacity = hasSideEmphasis ? (rightEmphasized ? 1 : 0.34) : 1
 
   const beginMarkerDrag = (event: ReactPointerEvent<SVGElement>, marker: MarkerMeta) => {
-    if (!markersDraggable) {
+    if (!markersDraggable || (canDragMarker && !canDragMarker(marker))) {
       return
     }
     event.preventDefault()

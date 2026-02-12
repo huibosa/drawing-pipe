@@ -334,10 +334,28 @@ body {
 
 .point-row {
   display: grid;
-  grid-template-columns: 52px 1fr 1fr;
+  grid-template-columns: 52px 1fr auto 1fr auto;
   gap: 8px;
   align-items: center;
   margin-bottom: 8px;
+}
+
+.lock-toggle {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  padding: 0;
+}
+
+.lock-toggle:hover {
+  background: #f8fafc;
 }
 
 .point-label {
