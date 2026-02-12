@@ -215,6 +215,7 @@ function ScalarFieldRow({
 function ShapeEditor({
   title,
   originLabel,
+  diameterLabel,
   lengthLabel,
   widthLabel,
   filletRadiusLabel,
@@ -230,6 +231,7 @@ function ShapeEditor({
 }: {
   title: string
   originLabel: string
+  diameterLabel: string
   lengthLabel: string
   widthLabel: string
   filletRadiusLabel: string
@@ -259,7 +261,7 @@ function ShapeEditor({
 
       {shape.shape_type === "Circle" ? (
         <ScalarFieldRow
-          label={shapeKey === "outer" ? "D" : "d"}
+          label={diameterLabel}
           value={shape.diameter}
           min={0.01}
           onChange={(value) => onUpdate(updateShapeField(shape, "diameter", value))}
@@ -458,13 +460,6 @@ function App(): JSX.Element {
             emptyText={t(locale, "notEnoughData")}
           />
           <MetricLineChart
-            title={t(locale, "eccentricity")}
-            series={eccSeries}
-            valueFormatter={decimal2}
-            onHoverIndexChange={setHoveredTransitionIndex}
-            emptyText={t(locale, "notEnoughData")}
-          />
-          <MetricLineChart
             title={t(locale, "thicknessReductionRate")}
             series={thickSeries}
             valueFormatter={percent1}
@@ -479,6 +474,13 @@ function App(): JSX.Element {
                 markerIndex: point.seriesIndex,
               })
             }}
+            emptyText={t(locale, "notEnoughData")}
+          />
+          <MetricLineChart
+            title={t(locale, "eccentricity")}
+            series={eccSeries}
+            valueFormatter={decimal2}
+            onHoverIndexChange={setHoveredTransitionIndex}
             emptyText={t(locale, "notEnoughData")}
           />
         </section>
@@ -695,6 +697,7 @@ function App(): JSX.Element {
               <ShapeEditor
                 title={t(locale, "outer")}
                 originLabel={t(locale, "origin")}
+                diameterLabel={t(locale, "diameter")}
                 lengthLabel={t(locale, "length")}
                 widthLabel={t(locale, "width")}
                 filletRadiusLabel={t(locale, "filletRadius")}
@@ -711,6 +714,7 @@ function App(): JSX.Element {
               <ShapeEditor
                 title={t(locale, "inner")}
                 originLabel={t(locale, "origin")}
+                diameterLabel={t(locale, "diameter")}
                 lengthLabel={t(locale, "length")}
                 widthLabel={t(locale, "width")}
                 filletRadiusLabel={t(locale, "filletRadius")}

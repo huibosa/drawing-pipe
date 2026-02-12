@@ -26,7 +26,7 @@ uv sync
 Run backend:
 
 ```bash
-uv run uvicorn backend.main:app --reload
+ALLOWED_ORIGINS="http://localhost:5173,http://127.0.0.1:5173" uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 Run frontend:
@@ -34,6 +34,8 @@ Run frontend:
 ```bash
 cd frontend
 bun install
+# Optional for remote access; defaults to current hostname:8000
+# export VITE_API_BASE_URL="http://<server-ip>:8000"
 bun run dev
 ```
 

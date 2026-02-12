@@ -1,6 +1,17 @@
 import type { AnalyzeResponse, Profile } from "../types/domain"
 
-const API_BASE = "http://127.0.0.1:8000"
+function resolveApiBase(): string {
+  const fromEnv = import.meta.env.VITE_API_BASE_URL?.trim()
+  if (fromEnv) {
+    return fromEnv.replace(/\/$/, "")
+  }
+
+  const protocol = window.location.protocol
+  const hostname = window.location.hostname
+  return `${protocol}//${hostname}:8000`
+}
+
+const API_BASE = resolveApiBase()
 
 export async function fetchTemplates(): Promise<Record<string, Profile["pipes"]>> {
   const response = await fetch(`${API_BASE}/api/templates`)
