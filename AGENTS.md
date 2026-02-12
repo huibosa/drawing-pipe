@@ -5,7 +5,7 @@ Follow these rules unless the user explicitly overrides them.
 
 ## Project Scope
 
-- Python geometry/process domain (`shapes.py`, `pipes.py`, `process.py`).
+- Python geometry/process domain (`src/drawing_pipe/core/`).
 - FastAPI backend (`backend/`) + React/Vite frontend (`frontend/`).
 
 ## Quick Start for Agents
@@ -21,7 +21,7 @@ uv run uvicorn backend.main:app --reload
 cd frontend && bun install && bun run dev
 
 # 4) Validate changes before finishing
-ruff check . && uv run python -m py_compile backend/main.py backend/domain.py && cd frontend && bun run build
+ruff check . && uv run python -m py_compile backend/main.py src/drawing_pipe/api/domain.py && cd frontend && bun run build
 ```
 
 ## Hard Rules for This Repo
@@ -41,11 +41,13 @@ ruff check . && uv run python -m py_compile backend/main.py backend/domain.py &&
 ## Important Paths
 
 - `backend/main.py`: FastAPI app entrypoint.
-- `backend/domain.py`: payload/domain conversion.
-- `backend/schemas.py`: API models.
-- `frontend/src/App.tsx`: main frontend state/UI.
-- `frontend/src/TransitionCard.tsx`: transition plot + drag markers.
-- `frontend/src/geometry.ts`: shape vertices/projection helpers.
+- `src/drawing_pipe/api/app.py`: FastAPI app construction.
+- `src/drawing_pipe/api/domain.py`: payload/domain conversion.
+- `src/drawing_pipe/api/schemas.py`: API models.
+- `src/drawing_pipe/core/`: shape/pipe/process core domain.
+- `frontend/src/app/App.tsx`: main frontend state/UI.
+- `frontend/src/features/transitions/TransitionCard.tsx`: transition plot + drag markers.
+- `frontend/src/shared/lib/geometry.ts`: shape vertices/projection helpers.
 
 ## Build / Lint / Test Commands
 
@@ -59,7 +61,7 @@ uv sync
 uv run uvicorn backend.main:app --reload
 
 # Syntax check selected modules
-uv run python -m py_compile backend/main.py backend/domain.py
+uv run python -m py_compile backend/main.py src/drawing_pipe/api/domain.py
 ```
 
 ### Frontend

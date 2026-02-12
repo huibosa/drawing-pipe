@@ -1,4 +1,4 @@
-import type { Bounds, CircleShape, RectShape, Shape, SplineShape } from "./types"
+import type { Bounds, CircleShape, RectShape, Shape, SplineShape } from "../types/domain"
 
 export function clamp(value: number, min: number): number {
   return Number.isFinite(value) ? Math.max(min, value) : min

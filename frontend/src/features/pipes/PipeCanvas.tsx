@@ -1,6 +1,6 @@
 import { Circle, Layer, Line, Stage } from "react-konva"
-import { clamp, vertices } from "./geometry"
-import type { Bounds, HandleTarget, Pipe, Shape } from "./types"
+import { clamp, vertices } from "../../shared/lib/geometry"
+import type { Bounds, HandleTarget, Pipe, Shape } from "../../shared/types/domain"
 
 type PipeCanvasProps = {
   pipe: Pipe

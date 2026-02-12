@@ -1,5 +1,5 @@
 import { clamp } from "./geometry"
-import type { CircleShape, Pipe, PipeType, RectShape, Shape, SplineShape } from "./types"
+import type { CircleShape, Pipe, PipeType, RectShape, Shape, SplineShape } from "../types/domain"
 
 function inferCircle(shape: Shape): CircleShape {
   if (shape.shape_type === "Circle") {

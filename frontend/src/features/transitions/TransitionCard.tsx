@@ -1,6 +1,6 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
-import { vertices } from "./geometry"
-import type { Bounds, Pipe } from "./types"
+import { vertices } from "../../shared/lib/geometry"
+import type { Bounds, Pipe } from "../../shared/types/domain"
 
 type TransitionCardProps = {
   leftPipe: Pipe

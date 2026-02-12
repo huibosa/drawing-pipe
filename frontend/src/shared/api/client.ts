@@ -1,4 +1,4 @@
-import type { AnalyzeResponse, Profile } from "./types"
+import type { AnalyzeResponse, Profile } from "../types/domain"
 
 const API_BASE = "http://127.0.0.1:8000"
 
