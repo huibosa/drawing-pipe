@@ -10,6 +10,7 @@ type TransitionCardProps = {
   title: string
   bounds: Bounds
   showMarkers: boolean
+  markersDraggable: boolean
   markerSize: number
   plotLineWidth: number
   areaReduction: number | null
@@ -207,13 +208,6 @@ function toWorld(point: [number, number], viewport: Viewport): [number, number] 
   return [snapStep(x), snapStep(y)]
 }
 
-function metricText(value: number | null, suffix = ""): string {
-  if (value === null || Number.isNaN(value)) {
-    return "n/a"
-  }
-  return `${value.toFixed(4)}${suffix}`
-}
-
 export function TransitionCard({
   leftPipe,
   rightPipe,
@@ -222,6 +216,7 @@ export function TransitionCard({
   title,
   bounds,
   showMarkers,
+  markersDraggable,
   markerSize,
   plotLineWidth,
   areaReduction,
@@ -378,8 +373,11 @@ export function TransitionCard({
                   fill={marker.kind === "center" ? "#fef08a" : "#ffffff"}
                   stroke={marker.kind === "center" ? "#a16207" : "#2b3340"}
                   strokeWidth={1}
-                  style={{ cursor: "grab" }}
+                  style={{ cursor: markersDraggable ? "grab" : "default" }}
                   onPointerDown={(event) => {
+                    if (!markersDraggable) {
+                      return
+                    }
                     event.preventDefault()
                     draggingPointerId.current = event.pointerId
                     svgRef.current?.setPointerCapture(event.pointerId)
@@ -395,13 +393,6 @@ export function TransitionCard({
             })
           : null}
       </svg>
-      <div className="transition-metrics">
-        <span>Area: {metricText(areaReduction, "")}</span>
-        <span>Ecc: {metricText(eccentricityDiff, "")}</span>
-        <span>
-          Thick: {thicknessReduction ? thicknessReduction.map((v) => v.toFixed(3)).join(", ") : "n/a"}
-        </span>
-      </div>
     </section>
   )
 }

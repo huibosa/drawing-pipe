@@ -119,6 +119,59 @@ body {
   font-size: 0.9rem;
 }
 
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metric-card {
+  border: 1px solid #d2dbe6;
+  border-radius: 10px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.metric-card h3 {
+  margin: 2px 0 8px;
+  font-size: 1rem;
+}
+
+.metric-svg {
+  width: 100%;
+  height: auto;
+  border: 1px solid #e2e7ef;
+  border-radius: 8px;
+  background: #fcfdff;
+}
+
+.metric-legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-size: 0.85rem;
+}
+
+.metric-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.metric-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.metric-empty {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
 .pipe-row {
   display: grid;
   grid-auto-flow: column;
@@ -220,5 +273,9 @@ body {
   .side-panel {
     border-right: none;
     border-bottom: 1px solid #d2dbe6;
+  }
+
+  .metrics-row {
+    grid-template-columns: 1fr;
   }
 }

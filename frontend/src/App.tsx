@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react"
 import { analyzeProfile, fetchTemplates } from "./api"
 import { getPipeBounds, mergeBounds } from "./geometry"
+import { MetricLineChart } from "./MetricLineChart"
 import { convertPipeType, duplicatePipe, pipeTypeName } from "./pipeUtils"
 import { TransitionCard } from "./TransitionCard"
 import type { AnalyzeResponse, Bounds, Pipe, PipeType, Shape } from "./types"
 import "./styles.css"
 
 const PIPE_TYPE_OPTIONS: PipeType[] = ["CircleCircle", "RectRect", "SplineSpline"]
-const DEBOUNCE_SECONDS = 1
 const DEFAULT_BOUNDS: Bounds = { minX: -50, maxX: 50, minY: -50, maxY: 50 }
 
 type ShapeKey = "outer" | "inner"
@@ -34,6 +34,20 @@ function computeBounds(pipes: Pipe[], padding: number): Bounds {
   }
   const all = pipes.map((pipe) => getPipeBounds([pipe.outer, pipe.inner], padding))
   return mergeBounds(all)
+}
+
+function thicknessSeries(metrics: AnalyzeResponse | null): { name: string; values: number[]; color: string }[] {
+  if (!metrics || metrics.thickness_reductions.length === 0) {
+    return []
+  }
+
+  const colors = ["#174a95", "#0c8a61", "#d95f02", "#9442a3", "#b45309"]
+  const count = metrics.thickness_reductions[0]?.length ?? 0
+  return Array.from({ length: count }, (_, idx) => ({
+    name: `p${idx + 1}`,
+    values: metrics.thickness_reductions.map((row) => row[idx] ?? 0),
+    color: colors[idx % colors.length],
+  }))
 }
 
 function updateShapeField(shape: Shape, field: string, value: number): Shape {
@@ -96,44 +110,13 @@ function updateShapeField(shape: Shape, field: string, value: number): Shape {
   return shape
 }
 
-function NumberField({
-  label,
-  value,
-  onChange,
-  step = 0.1,
-  min,
-  disabled = false,
-}: {
-  label: string
-  value: number
-  onChange: (value: number) => void
-  step?: number
-  min?: number
-  disabled?: boolean
-}): JSX.Element {
-  return (
-    <label className="field-label compact">
-      <span>{label}</span>
-      <input
-        className="field-input"
-        type="number"
-        value={Number.isFinite(value) ? value : 0}
-        step={step}
-        min={min}
-        disabled={disabled}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
-    </label>
-  )
-}
-
 function PointFieldRow({
   label,
   x,
   y,
   onXChange,
   onYChange,
-  step = 0.1,
+  step = 0.05,
   disabledX = false,
 }: {
   label: string
@@ -172,7 +155,7 @@ function ScalarFieldRow({
   label,
   value,
   onChange,
-  step = 0.1,
+  step = 0.05,
   min,
 }: {
   label: string
@@ -230,19 +213,19 @@ function ShapeEditor({
 
       {shape.shape_type === "Rect" ? (
         <>
-          <NumberField
+          <ScalarFieldRow
             label="length"
             value={shape.length}
             min={0.01}
             onChange={(value) => onUpdate(updateShapeField(shape, "length", value))}
           />
-          <NumberField
+          <ScalarFieldRow
             label="width"
             value={shape.width}
             min={0.01}
             onChange={(value) => onUpdate(updateShapeField(shape, "width", value))}
           />
-          <NumberField
+          <ScalarFieldRow
             label="fillet radius"
             value={shape.fillet_radius}
             min={0.01}
@@ -287,12 +270,11 @@ function App(): JSX.Element {
   const [metrics, setMetrics] = useState<AnalyzeResponse | null>(null)
   const [error, setError] = useState<string>("")
   const [showMarkers, setShowMarkers] = useState(true)
+  const [enableTransitionMarkerDrag, setEnableTransitionMarkerDrag] = useState(false)
   const [padding, setPadding] = useState(0.01)
   const [markerSize, setMarkerSize] = useState(2)
   const [plotLineWidth, setPlotLineWidth] = useState(1.5)
   const [viewBounds, setViewBounds] = useState<Bounds>(DEFAULT_BOUNDS)
-  const [dirtyAt, setDirtyAt] = useState<Record<number, number>>({})
-  const [appliedAt, setAppliedAt] = useState<Record<number, number>>({})
 
   useEffect(() => {
     fetchTemplates()
@@ -315,32 +297,19 @@ function App(): JSX.Element {
       return
     }
 
-    const timer = window.setTimeout(() => {
-      analyzeProfile({ version: 1, pipes })
-        .then((result) => {
-          setMetrics(result)
-          const now = Date.now()
-          const entries = Object.keys(dirtyAt).map((idx) => [Number(idx), now] as const)
-          setAppliedAt((prev) => ({ ...prev, ...Object.fromEntries(entries) }))
-          setError("")
-        })
-        .catch((err: unknown) => {
-          setError(err instanceof Error ? err.message : String(err))
-        })
-    }, DEBOUNCE_SECONDS * 1000)
-
-    return () => window.clearTimeout(timer)
-  }, [pipes, dirtyAt])
+    analyzeProfile({ version: 1, pipes })
+      .then((result) => {
+        setMetrics(result)
+        setError("")
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : String(err))
+      })
+  }, [pipes])
 
   useEffect(() => {
     setViewBounds(computeBounds(pipes, padding))
   }, [padding])
-
-  const now = Date.now()
-
-  const markDirty = (pipeIdx: number) => {
-    setDirtyAt((prev) => ({ ...prev, [pipeIdx]: Date.now() }))
-  }
 
   const updatePipe = (pipeIdx: number, nextPipe: Pipe) => {
     setPipes((prev) => {
@@ -359,7 +328,6 @@ function App(): JSX.Element {
       updated[pipeIdx] = lockPipeCenterX(snappedPipe)
       return updated
     })
-    markDirty(pipeIdx)
   }
 
   const updatePipeShape = (pipeIdx: number, key: ShapeKey, nextShape: Shape) => {
@@ -372,22 +340,15 @@ function App(): JSX.Element {
       updated[pipeIdx] = lockPipeCenterX({ ...updated[pipeIdx], [key]: snappedShape })
       return updated
     })
-    markDirty(pipeIdx)
   }
 
-  const statusText = (pipeIdx: number): string => {
-    const dirty = dirtyAt[pipeIdx]
-    const applied = appliedAt[pipeIdx] ?? 0
-    if (!dirty || dirty <= applied) {
-      return "Updated"
-    }
-    const elapsed = (now - dirty) / 1000
-    const remaining = DEBOUNCE_SECONDS - elapsed
-    if (remaining > 0) {
-      return `Editing... auto-apply in ${remaining.toFixed(1)}s`
-    }
-    return "Applying changes..."
-  }
+  const areaSeries = metrics
+    ? [{ name: "area", values: metrics.area_reductions, color: "#174a95" }]
+    : []
+  const eccSeries = metrics
+    ? [{ name: "ecc", values: metrics.eccentricity_diffs, color: "#0c8a61" }]
+    : []
+  const thickSeries = thicknessSeries(metrics)
 
   return (
     <div className="app-shell">
@@ -407,8 +368,6 @@ function App(): JSX.Element {
             const nextPipes = (templates[value] ?? []).map(duplicatePipe).map(lockPipeCenterX)
             setPipes(nextPipes)
             setViewBounds(computeBounds(nextPipes, padding))
-            setDirtyAt({})
-            setAppliedAt({})
           }}
         >
           {Object.keys(templates).map((name) => (
@@ -425,6 +384,15 @@ function App(): JSX.Element {
             onChange={(event) => setShowMarkers(event.target.checked)}
           />
           <span>Show markers</span>
+        </label>
+
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={enableTransitionMarkerDrag}
+            onChange={(event) => setEnableTransitionMarkerDrag(event.target.checked)}
+          />
+          <span>Enable transition marker drag</span>
         </label>
 
         <label className="field-label compact" htmlFor="padding-range">
@@ -492,6 +460,7 @@ function App(): JSX.Element {
                 onRightPipeChange={(nextPipe) => updatePipe(index + 1, nextPipe)}
                 bounds={viewBounds}
                 showMarkers={showMarkers}
+                markersDraggable={enableTransitionMarkerDrag}
                 markerSize={markerSize}
                 plotLineWidth={plotLineWidth}
                 title={`Transition: Pipe ${index + 1} -> Pipe ${index + 2}`}
@@ -502,6 +471,12 @@ function App(): JSX.Element {
             ))}
           </section>
         ) : null}
+
+        <section className="metrics-row">
+          <MetricLineChart title="Area plot" series={areaSeries} />
+          <MetricLineChart title="Ecc plot" series={eccSeries} />
+          <MetricLineChart title="Thick plot" series={thickSeries} />
+        </section>
 
         <section className="pipe-row">
           {pipes.map((pipe, index) => (
@@ -550,8 +525,6 @@ function App(): JSX.Element {
                 onUpdate={(nextShape) => updatePipeShape(index, "inner", nextShape)}
               />
 
-              <p className="pipe-status">{statusText(index)}</p>
-
               <div className="pipe-actions">
                 <button
                   className="danger"
@@ -562,8 +535,6 @@ function App(): JSX.Element {
                       setViewBounds(computeBounds(next, padding))
                       return next
                     })
-                    setDirtyAt({})
-                    setAppliedAt({})
                   }}
                 >
                   x
@@ -577,8 +548,6 @@ function App(): JSX.Element {
                       setViewBounds(computeBounds(next, padding))
                       return next
                     })
-                    setDirtyAt({})
-                    setAppliedAt({})
                   }}
                 >
                   +
