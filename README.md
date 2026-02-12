@@ -26,22 +26,23 @@ pip install -e .
 
 ## Usage
 
-Run the Streamlit app:
+Run backend:
 
 ```bash
-uv run streamlit run streamlit_app.py
+uv run uvicorn backend.main:app --reload
 ```
 
-Or simply:
+Run frontend:
 
 ```bash
-uv run streamlit run main.py
+cd frontend
+bun install
+bun run dev
 ```
 
-## Fullstack Rewrite (WIP)
+## Fullstack App
 
-A new FastAPI backend and React frontend foundation is available for the
-interactive drag-to-edit rewrite.
+The app uses a FastAPI backend and React frontend for interactive drag-to-edit.
 
 - Backend entrypoint: `backend/main.py`
 - Frontend app: `frontend/`
@@ -64,8 +65,8 @@ bun run dev
 
 ```
 drawing_pipe/
-├── streamlit_app.py     # Main Streamlit UI application
-├── main.py              # Entry point
+├── backend/             # FastAPI backend
+├── frontend/            # React frontend
 ├── pipes.py             # Pipe model definitions (CircleCircle, RectRect, SplineSpline)
 ├── shapes.py            # Shape models (Circle, Rect, CubicSplineShape)
 ├── process.py           # Process analysis calculations

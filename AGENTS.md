@@ -6,8 +6,7 @@ Follow these rules unless the user explicitly overrides them.
 ## Project Scope
 
 - Python geometry/process domain (`shapes.py`, `pipes.py`, `process.py`).
-- Streamlit app (`streamlit_app.py`) for current production UI.
-- FastAPI backend (`backend/`) + React/Vite frontend (`frontend/`) rewrite.
+- FastAPI backend (`backend/`) + React/Vite frontend (`frontend/`).
 
 ## Quick Start for Agents
 
@@ -18,14 +17,11 @@ uv sync
 # 2) Run backend API
 uv run uvicorn backend.main:app --reload
 
-# 3) Run Streamlit app (legacy/current production UI)
-uv run streamlit run streamlit_app.py
-
-# 4) Run frontend dev server (new rewrite UI)
+# 3) Run frontend dev server
 cd frontend && bun install && bun run dev
 
-# 5) Validate changes before finishing
-ruff check . && uv run python -m py_compile streamlit_app.py backend/main.py && cd frontend && bun run build
+# 4) Validate changes before finishing
+ruff check . && uv run python -m py_compile backend/main.py backend/domain.py && cd frontend && bun run build
 ```
 
 ## Hard Rules for This Repo
@@ -45,7 +41,6 @@ ruff check . && uv run python -m py_compile streamlit_app.py backend/main.py && 
 
 ## Important Paths
 
-- `streamlit_app.py`: Streamlit UI logic.
 - `backend/main.py`: FastAPI app entrypoint.
 - `backend/domain.py`: payload/domain conversion.
 - `backend/schemas.py`: API models.
@@ -61,14 +56,11 @@ ruff check . && uv run python -m py_compile streamlit_app.py backend/main.py && 
 # Sync Python dependencies
 uv sync
 
-# Run Streamlit
-uv run streamlit run streamlit_app.py
-
 # Run FastAPI backend
 uv run uvicorn backend.main:app --reload
 
 # Syntax check selected modules
-uv run python -m py_compile streamlit_app.py backend/main.py backend/domain.py
+uv run python -m py_compile backend/main.py backend/domain.py
 ```
 
 ### Frontend
