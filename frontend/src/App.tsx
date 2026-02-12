@@ -333,7 +333,7 @@ function App(): JSX.Element {
   const [enableTransitionMarkerDrag, setEnableTransitionMarkerDrag] = useState(false)
   const [padding, setPadding] = useState(0.01)
   const [markerSize, setMarkerSize] = useState(2)
-  const [plotLineWidth, setPlotLineWidth] = useState(1.5)
+  const [plotLineWidth, setPlotLineWidth] = useState(2.0)
   const [viewBounds, setViewBounds] = useState<Bounds>(DEFAULT_BOUNDS)
   const [hoveredTransitionIndex, setHoveredTransitionIndex] = useState<number | null>(null)
   const [hoveredPipeIndex, setHoveredPipeIndex] = useState<number | null>(null)
@@ -423,6 +423,11 @@ function App(): JSX.Element {
     ? [{ name: t(locale, "ecc"), values: metrics.eccentricity_diffs, color: "#0c8a61" }]
     : []
   const thickSeries = thicknessSeries(metrics)
+  const pipeTypeLabelByOption: Record<PipeType, string> = {
+    CircleCircle: t(locale, "pipeTypeCircleCircle"),
+    RectRect: t(locale, "pipeTypeRectRect"),
+    SplineSpline: t(locale, "pipeTypeSplineSpline"),
+  }
 
   return (
     <div className="app-shell">
@@ -660,7 +665,7 @@ function App(): JSX.Element {
                 >
                   {PIPE_TYPE_OPTIONS.map((option) => (
                     <option key={option} value={option}>
-                      {option}
+                      {pipeTypeLabelByOption[option]}
                     </option>
                   ))}
                 </select>
