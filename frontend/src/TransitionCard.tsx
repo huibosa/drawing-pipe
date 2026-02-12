@@ -78,6 +78,12 @@ function shapePath(pipe: Pipe, key: "outer" | "inner", viewport: Viewport): stri
   return toPath(points)
 }
 
+function ringPath(pipe: Pipe, viewport: Viewport): string {
+  const outer = shapePath(pipe, "outer", viewport)
+  const inner = shapePath(pipe, "inner", viewport)
+  return `${outer} ${inner}`
+}
+
 function markerPoints(pipe: Pipe, key: "outer" | "inner"): [number, number][] {
   const shape = pipe[key]
   if (shape.shape_type === "Circle") {
@@ -347,6 +353,13 @@ export function TransitionCard({
           setActiveMarker(null)
         }}
       >
+        <path
+          d={ringPath(leftPipe, viewport)}
+          fill="#174a95"
+          fillOpacity={0.18}
+          fillRule="evenodd"
+          stroke="none"
+        />
         <path
           d={shapePath(leftPipe, "outer", viewport)}
           stroke="#174a95"

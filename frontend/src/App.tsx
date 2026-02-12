@@ -461,6 +461,12 @@ function App(): JSX.Element {
           Fit View
         </button>
 
+        <section className="metrics-sidebar">
+          <MetricLineChart title="Area plot" series={areaSeries} />
+          <MetricLineChart title="Ecc plot" series={eccSeries} />
+          <MetricLineChart title="Thick plot" series={thickSeries} />
+        </section>
+
         {error ? <p className="error">{error}</p> : null}
       </aside>
 
@@ -487,12 +493,6 @@ function App(): JSX.Element {
             ))}
           </section>
         ) : null}
-
-        <section className="metrics-row">
-          <MetricLineChart title="Area plot" series={areaSeries} />
-          <MetricLineChart title="Ecc plot" series={eccSeries} />
-          <MetricLineChart title="Thick plot" series={thickSeries} />
-        </section>
 
         <section className="pipe-row">
           {pipes.map((pipe, index) => (
