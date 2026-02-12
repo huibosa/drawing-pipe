@@ -2,10 +2,15 @@ from __future__ import annotations
 
 from typing import cast
 
-import fixtures
-from backend.schemas import CirclePayload, PipePayload, RectPayload, SplinePayload
-from pipes import CircleCircle, Pipe, RectRect, SplineSpline
-from shapes import Circle, CubicSplineShape, Rect
+from drawing_pipe.api.schemas import (
+    CirclePayload,
+    PipePayload,
+    RectPayload,
+    SplinePayload,
+)
+from drawing_pipe.core import fixtures
+from drawing_pipe.core.pipes import CircleCircle, Pipe, RectRect, SplineSpline
+from drawing_pipe.core.shapes import Circle, CubicSplineShape, Rect
 
 
 def shape_from_payload(

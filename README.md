@@ -17,11 +17,8 @@ An interactive geometric library and web app for calculating pipe properties (ar
 ## Installation
 
 ```bash
-# Using uv (recommended)
-uv pip install -e .
-
-# Using pip
-pip install -e .
+# Sync dependencies
+uv sync
 ```
 
 ## Usage
@@ -67,10 +64,9 @@ bun run dev
 drawing_pipe/
 ├── backend/             # FastAPI backend
 ├── frontend/            # React frontend
-├── pipes.py             # Pipe model definitions (CircleCircle, RectRect, SplineSpline)
-├── shapes.py            # Shape models (Circle, Rect, CubicSplineShape)
-├── process.py           # Process analysis calculations
-├── fixtures.py          # Pre-defined pipe templates
+├── src/drawing_pipe/
+│   ├── api/             # FastAPI app/domain/schemas
+│   └── core/            # Shape, pipe, process domain models
 └── images/              # Screenshots and assets
 ```
 
@@ -84,20 +80,20 @@ drawing_pipe/
 
 ## API Reference
 
-### Shapes (`shapes.py`)
+### Shapes (`src/drawing_pipe/core/shapes.py`)
 
 - `Circle`: Defined by `origin` (x, y) and `diameter`
 - `Rect`: Defined by `origin`, `length`, `width`, and `fillet_radius`
 - `CubicSplineShape`: Defined by `origin` and control points `v1`, `v2`, `v3`
 
-### Pipes (`pipes.py`)
+### Pipes (`src/drawing_pipe/core/pipes.py`)
 
 All pipe types support:
 - `area`: Cross-sectional area (outer - inner)
 - `eccentricity`: Distance between outer and inner origins
 - `thickness`: Array of 5 thickness values at key vertices
 
-### Process Analysis (`process.py`)
+### Process Analysis (`src/drawing_pipe/core/process.py`)
 
 `ProcessAnalysis` provides:
 - `area_reductions`: Percentage area reduction between consecutive pipes
