@@ -10,12 +10,18 @@ type TransitionCardProps = {
   title: string
   bounds: Bounds
   showMarkers: boolean
+  markerSize: number
+  plotLineWidth: number
   areaReduction: number | null
   eccentricityDiff: number | null
   thicknessReduction: number[] | null
 }
 
 const SIZE = 260
+
+function snapStep(value: number, step = 0.05): number {
+  return Number((Math.round(value / step) * step).toFixed(6))
+}
 
 type MarkerMeta = {
   key: string
@@ -33,12 +39,27 @@ type ActiveMarker = {
   markerIndex: number
 }
 
-function project(point: [number, number], bounds: Bounds): [number, number] {
+type Viewport = {
+  scale: number
+  offsetX: number
+  offsetY: number
+}
+
+function viewportFromBounds(bounds: Bounds): Viewport {
   const width = Math.max(bounds.maxX - bounds.minX, 1)
   const height = Math.max(bounds.maxY - bounds.minY, 1)
-  const x = ((point[0] - bounds.minX) / width) * SIZE
-  const y = ((bounds.maxY - point[1]) / height) * SIZE
-  return [x, y]
+  const span = Math.max(width, height)
+  const scale = SIZE / span
+  const centerX = (bounds.minX + bounds.maxX) / 2
+  const centerY = (bounds.minY + bounds.maxY) / 2
+  const offsetX = SIZE / 2 - centerX * scale
+  const offsetY = SIZE / 2 + centerY * scale
+  return { scale, offsetX, offsetY }
+}
+
+function project(point: [number, number], viewport: Viewport): [number, number] {
+  const [x, y] = point
+  return [x * viewport.scale + viewport.offsetX, -y * viewport.scale + viewport.offsetY]
 }
 
 function toPath(points: [number, number][]): string {
@@ -51,8 +72,8 @@ function toPath(points: [number, number][]): string {
   return `${startText} ${segmentText} Z`
 }
 
-function shapePath(pipe: Pipe, key: "outer" | "inner", bounds: Bounds): string {
-  const points = vertices(pipe[key]).map((point) => project(point, bounds))
+function shapePath(pipe: Pipe, key: "outer" | "inner", viewport: Viewport): string {
+  const points = vertices(pipe[key]).map((point) => project(point, viewport))
   return toPath(points)
 }
 
@@ -97,24 +118,26 @@ function updateShapeByMarker(
   markerIndex: number,
   nextPoint: [number, number]
 ): Pipe["outer"] {
+  const snapped: [number, number] = [snapStep(nextPoint[0]), snapStep(nextPoint[1])]
+
   if (shape.shape_type === "Circle") {
     const [ox, oy] = shape.origin
-    const diameter = Math.max(0.01, 2 * Math.hypot(nextPoint[0] - ox, nextPoint[1] - oy))
+    const diameter = Math.max(0.01, 2 * Math.hypot(snapped[0] - ox, snapped[1] - oy))
     return { ...shape, diameter }
   }
 
   if (shape.shape_type === "Rect") {
     const [ox, oy] = shape.origin
     if (markerIndex === 0 || markerIndex === 4) {
-      const nextLength = Math.max(0.01, 2 * Math.abs(nextPoint[1] - oy))
+      const nextLength = Math.max(0.01, 2 * Math.abs(snapped[1] - oy))
       return { ...shape, length: nextLength }
     }
-    const nextWidth = Math.max(0.01, 2 * Math.abs(nextPoint[0] - ox))
+    const nextWidth = Math.max(0.01, 2 * Math.abs(snapped[0] - ox))
     if (markerIndex === 2) {
       return { ...shape, width: nextWidth }
     }
 
-    const nextLength = Math.max(0.01, 2 * Math.abs(nextPoint[1] - oy))
+    const nextLength = Math.max(0.01, 2 * Math.abs(snapped[1] - oy))
     return {
       ...shape,
       width: nextWidth,
@@ -126,24 +149,24 @@ function updateShapeByMarker(
   if (markerIndex === 0) {
     return {
       ...shape,
-      v1: [nextPoint[0] - ox, nextPoint[1] - oy],
+      v1: [snapStep(snapped[0] - ox), snapStep(snapped[1] - oy)],
     }
   }
   if (markerIndex === 1 || markerIndex === 3) {
     return {
       ...shape,
-      v2: [nextPoint[0] - ox, Math.abs(nextPoint[1] - oy)],
+      v2: [snapStep(snapped[0] - ox), snapStep(Math.abs(snapped[1] - oy))],
     }
   }
   if (markerIndex === 2) {
     return {
       ...shape,
-      v3: [nextPoint[0] - ox, nextPoint[1] - oy],
+      v3: [snapStep(snapped[0] - ox), snapStep(snapped[1] - oy)],
     }
   }
   return {
     ...shape,
-    v1: [nextPoint[0] - ox, Math.abs(nextPoint[1] - oy)],
+    v1: [snapStep(snapped[0] - ox), snapStep(Math.abs(snapped[1] - oy))],
   }
 }
 
@@ -159,15 +182,15 @@ function updatePipeByMarker(
 }
 
 function movePipeCenter(pipe: Pipe, nextCenter: [number, number]): Pipe {
-  const [cx, cy] = pipe.outer.origin
-  const dx = nextCenter[0] - cx
-  const dy = nextCenter[1] - cy
+  const [, cy] = pipe.outer.origin
+  const targetY = snapStep(nextCenter[1])
+  const dy = targetY - cy
 
   const moveShape = (shape: Pipe["outer"]): Pipe["outer"] => {
-    const [ox, oy] = shape.origin
+    const [, oy] = shape.origin
     return {
       ...shape,
-      origin: [ox + dx, oy + dy],
+      origin: [0, snapStep(oy + dy)],
     }
   }
 
@@ -178,12 +201,10 @@ function movePipeCenter(pipe: Pipe, nextCenter: [number, number]): Pipe {
   }
 }
 
-function toWorld(point: [number, number], bounds: Bounds): [number, number] {
-  const width = Math.max(bounds.maxX - bounds.minX, 1)
-  const height = Math.max(bounds.maxY - bounds.minY, 1)
-  const x = bounds.minX + (point[0] / SIZE) * width
-  const y = bounds.maxY - (point[1] / SIZE) * height
-  return [x, y]
+function toWorld(point: [number, number], viewport: Viewport): [number, number] {
+  const x = (point[0] - viewport.offsetX) / viewport.scale
+  const y = (viewport.offsetY - point[1]) / viewport.scale
+  return [snapStep(x), snapStep(y)]
 }
 
 function metricText(value: number | null, suffix = ""): string {
@@ -201,12 +222,16 @@ export function TransitionCard({
   title,
   bounds,
   showMarkers,
+  markerSize,
+  plotLineWidth,
   areaReduction,
   eccentricityDiff,
   thicknessReduction,
 }: TransitionCardProps): JSX.Element {
   const svgRef = useRef<SVGSVGElement | null>(null)
+  const draggingPointerId = useRef<number | null>(null)
   const [activeMarker, setActiveMarker] = useState<ActiveMarker | null>(null)
+  const viewport = viewportFromBounds(bounds)
 
   const allMarkers: MarkerMeta[] = [
     ...markerPoints(leftPipe, "outer").map((point, markerIndex) => ({
@@ -269,7 +294,7 @@ export function TransitionCard({
     }
     const localX = ((clientX - rect.left) / rect.width) * SIZE
     const localY = ((clientY - rect.top) / rect.height) * SIZE
-    const world = toWorld([localX, localY], bounds)
+    const world = toWorld([localX, localY], viewport)
 
     if (activeMarker.side === "left") {
       if (activeMarker.kind === "center") {
@@ -300,40 +325,64 @@ export function TransitionCard({
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         className="transition-svg"
         onPointerMove={(event) => updateFromPointer(event.clientX, event.clientY)}
-        onPointerUp={() => setActiveMarker(null)}
-        onPointerLeave={() => setActiveMarker(null)}
+        onPointerUp={() => {
+          if (draggingPointerId.current !== null) {
+            svgRef.current?.releasePointerCapture(draggingPointerId.current)
+            draggingPointerId.current = null
+          }
+          setActiveMarker(null)
+        }}
+        onPointerCancel={() => {
+          if (draggingPointerId.current !== null) {
+            svgRef.current?.releasePointerCapture(draggingPointerId.current)
+            draggingPointerId.current = null
+          }
+          setActiveMarker(null)
+        }}
       >
-        <path d={shapePath(leftPipe, "outer", bounds)} stroke="#174a95" strokeWidth={2} fill="none" />
-        <path d={shapePath(leftPipe, "inner", bounds)} stroke="#0c8a61" strokeWidth={1.8} fill="none" />
         <path
-          d={shapePath(rightPipe, "outer", bounds)}
+          d={shapePath(leftPipe, "outer", viewport)}
+          stroke="#174a95"
+          strokeWidth={plotLineWidth}
+          fill="none"
+        />
+        <path
+          d={shapePath(leftPipe, "inner", viewport)}
+          stroke="#0c8a61"
+          strokeWidth={plotLineWidth * 0.9}
+          fill="none"
+        />
+        <path
+          d={shapePath(rightPipe, "outer", viewport)}
           stroke="#d95f02"
-          strokeWidth={2}
+          strokeWidth={plotLineWidth}
           fill="none"
           strokeDasharray="6 4"
         />
         <path
-          d={shapePath(rightPipe, "inner", bounds)}
+          d={shapePath(rightPipe, "inner", viewport)}
           stroke="#9442a3"
-          strokeWidth={1.8}
+          strokeWidth={plotLineWidth * 0.9}
           fill="none"
           strokeDasharray="6 4"
         />
         {showMarkers
           ? allMarkers.map((marker) => {
-              const [x, y] = project(marker.point, bounds)
+              const [x, y] = project(marker.point, viewport)
               return (
                 <circle
                   key={marker.key}
                   cx={x}
                   cy={y}
-                  r={3}
+                  r={markerSize}
                   fill={marker.kind === "center" ? "#fef08a" : "#ffffff"}
                   stroke={marker.kind === "center" ? "#a16207" : "#2b3340"}
                   strokeWidth={1}
                   style={{ cursor: "grab" }}
                   onPointerDown={(event) => {
                     event.preventDefault()
+                    draggingPointerId.current = event.pointerId
+                    svgRef.current?.setPointerCapture(event.pointerId)
                     setActiveMarker({
                       side: marker.side,
                       kind: marker.kind,

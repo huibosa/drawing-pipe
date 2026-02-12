@@ -1,23 +1,48 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { analyzeProfile, fetchTemplates } from "./api"
 import { getPipeBounds, mergeBounds } from "./geometry"
 import { convertPipeType, duplicatePipe, pipeTypeName } from "./pipeUtils"
 import { TransitionCard } from "./TransitionCard"
-import type { AnalyzeResponse, Pipe, PipeType, Shape } from "./types"
+import type { AnalyzeResponse, Bounds, Pipe, PipeType, Shape } from "./types"
 import "./styles.css"
 
 const PIPE_TYPE_OPTIONS: PipeType[] = ["CircleCircle", "RectRect", "SplineSpline"]
 const DEBOUNCE_SECONDS = 1
+const DEFAULT_BOUNDS: Bounds = { minX: -50, maxX: 50, minY: -50, maxY: 50 }
 
 type ShapeKey = "outer" | "inner"
+
+function snapStep(value: number, step = 0.05): number {
+  return Number((Math.round(value / step) * step).toFixed(6))
+}
+
+function lockShapeCenterX(shape: Shape): Shape {
+  return { ...shape, origin: [0, shape.origin[1]] }
+}
+
+function lockPipeCenterX(pipe: Pipe): Pipe {
+  return {
+    ...pipe,
+    outer: lockShapeCenterX(pipe.outer),
+    inner: lockShapeCenterX(pipe.inner),
+  }
+}
+
+function computeBounds(pipes: Pipe[], padding: number): Bounds {
+  if (pipes.length === 0) {
+    return DEFAULT_BOUNDS
+  }
+  const all = pipes.map((pipe) => getPipeBounds([pipe.outer, pipe.inner], padding))
+  return mergeBounds(all)
+}
 
 function updateShapeField(shape: Shape, field: string, value: number): Shape {
   if (shape.shape_type === "Circle") {
     if (field === "ox") {
-      return { ...shape, origin: [value, shape.origin[1]] }
+      return { ...shape, origin: [0, shape.origin[1]] }
     }
     if (field === "oy") {
-      return { ...shape, origin: [shape.origin[0], value] }
+      return { ...shape, origin: [0, value] }
     }
     if (field === "diameter") {
       return { ...shape, diameter: Math.max(value, 0.01) }
@@ -27,10 +52,10 @@ function updateShapeField(shape: Shape, field: string, value: number): Shape {
 
   if (shape.shape_type === "Rect") {
     if (field === "ox") {
-      return { ...shape, origin: [value, shape.origin[1]] }
+      return { ...shape, origin: [0, shape.origin[1]] }
     }
     if (field === "oy") {
-      return { ...shape, origin: [shape.origin[0], value] }
+      return { ...shape, origin: [0, value] }
     }
     if (field === "length") {
       return { ...shape, length: Math.max(value, 0.01) }
@@ -45,10 +70,10 @@ function updateShapeField(shape: Shape, field: string, value: number): Shape {
   }
 
   if (field === "ox") {
-    return { ...shape, origin: [value, shape.origin[1]] }
+    return { ...shape, origin: [0, shape.origin[1]] }
   }
   if (field === "oy") {
-    return { ...shape, origin: [shape.origin[0], value] }
+    return { ...shape, origin: [0, value] }
   }
   if (field === "v1x") {
     return { ...shape, v1: [value, shape.v1[1]] }
@@ -77,12 +102,14 @@ function NumberField({
   onChange,
   step = 0.1,
   min,
+  disabled = false,
 }: {
   label: string
   value: number
   onChange: (value: number) => void
   step?: number
   min?: number
+  disabled?: boolean
 }): JSX.Element {
   return (
     <label className="field-label compact">
@@ -93,9 +120,81 @@ function NumberField({
         value={Number.isFinite(value) ? value : 0}
         step={step}
         min={min}
+        disabled={disabled}
         onChange={(event) => onChange(Number(event.target.value))}
       />
     </label>
+  )
+}
+
+function PointFieldRow({
+  label,
+  x,
+  y,
+  onXChange,
+  onYChange,
+  step = 0.1,
+  disabledX = false,
+}: {
+  label: string
+  x: number
+  y: number
+  onXChange: (value: number) => void
+  onYChange: (value: number) => void
+  step?: number
+  disabledX?: boolean
+}): JSX.Element {
+  return (
+    <div className="point-row">
+      <span className="point-label">{label}</span>
+      <input
+        className="field-input"
+        type="number"
+        value={Number.isFinite(x) ? x : 0}
+        step={step}
+        disabled={disabledX}
+        aria-label={`${label} x`}
+        onChange={(event) => onXChange(Number(event.target.value))}
+      />
+      <input
+        className="field-input"
+        type="number"
+        value={Number.isFinite(y) ? y : 0}
+        step={step}
+        aria-label={`${label} y`}
+        onChange={(event) => onYChange(Number(event.target.value))}
+      />
+    </div>
+  )
+}
+
+function ScalarFieldRow({
+  label,
+  value,
+  onChange,
+  step = 0.1,
+  min,
+}: {
+  label: string
+  value: number
+  onChange: (value: number) => void
+  step?: number
+  min?: number
+}): JSX.Element {
+  return (
+    <div className="point-row">
+      <span className="point-label">{label}</span>
+      <input
+        className="field-input"
+        type="number"
+        value={Number.isFinite(value) ? value : 0}
+        step={step}
+        min={min}
+        aria-label={label}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+      <span />
+    </div>
   )
 }
 
@@ -111,22 +210,18 @@ function ShapeEditor({
   return (
     <section className="shape-editor">
       <h4>{title}</h4>
-      <div className="xy-row">
-        <NumberField
-          label="origin x"
-          value={shape.origin[0]}
-          onChange={(value) => onUpdate(updateShapeField(shape, "ox", value))}
-        />
-        <NumberField
-          label="origin y"
-          value={shape.origin[1]}
-          onChange={(value) => onUpdate(updateShapeField(shape, "oy", value))}
-        />
-      </div>
+      <PointFieldRow
+        label="origin"
+        x={0}
+        y={shape.origin[1]}
+        disabledX
+        onXChange={(value) => onUpdate(updateShapeField(shape, "ox", value))}
+        onYChange={(value) => onUpdate(updateShapeField(shape, "oy", value))}
+      />
 
       {shape.shape_type === "Circle" ? (
-        <NumberField
-          label="diameter"
+        <ScalarFieldRow
+          label={title === "Outer" ? "D" : "d"}
           value={shape.diameter}
           min={0.01}
           onChange={(value) => onUpdate(updateShapeField(shape, "diameter", value))}
@@ -158,42 +253,27 @@ function ShapeEditor({
 
       {shape.shape_type === "CubicSplineShape" ? (
         <>
-          <div className="xy-row">
-            <NumberField
-              label="v1 x"
-              value={shape.v1[0]}
-              onChange={(value) => onUpdate(updateShapeField(shape, "v1x", value))}
-            />
-            <NumberField
-              label="v1 y"
-              value={shape.v1[1]}
-              onChange={(value) => onUpdate(updateShapeField(shape, "v1y", value))}
-            />
-          </div>
-          <div className="xy-row">
-            <NumberField
-              label="v2 x"
-              value={shape.v2[0]}
-              onChange={(value) => onUpdate(updateShapeField(shape, "v2x", value))}
-            />
-            <NumberField
-              label="v2 y"
-              value={shape.v2[1]}
-              onChange={(value) => onUpdate(updateShapeField(shape, "v2y", value))}
-            />
-          </div>
-          <div className="xy-row">
-            <NumberField
-              label="v3 x"
-              value={shape.v3[0]}
-              onChange={(value) => onUpdate(updateShapeField(shape, "v3x", value))}
-            />
-            <NumberField
-              label="v3 y"
-              value={shape.v3[1]}
-              onChange={(value) => onUpdate(updateShapeField(shape, "v3y", value))}
-            />
-          </div>
+          <PointFieldRow
+            label="v1"
+            x={shape.v1[0]}
+            y={shape.v1[1]}
+            onXChange={(value) => onUpdate(updateShapeField(shape, "v1x", value))}
+            onYChange={(value) => onUpdate(updateShapeField(shape, "v1y", value))}
+          />
+          <PointFieldRow
+            label="v2"
+            x={shape.v2[0]}
+            y={shape.v2[1]}
+            onXChange={(value) => onUpdate(updateShapeField(shape, "v2x", value))}
+            onYChange={(value) => onUpdate(updateShapeField(shape, "v2y", value))}
+          />
+          <PointFieldRow
+            label="v3"
+            x={shape.v3[0]}
+            y={shape.v3[1]}
+            onXChange={(value) => onUpdate(updateShapeField(shape, "v3x", value))}
+            onYChange={(value) => onUpdate(updateShapeField(shape, "v3y", value))}
+          />
         </>
       ) : null}
     </section>
@@ -207,7 +287,10 @@ function App(): JSX.Element {
   const [metrics, setMetrics] = useState<AnalyzeResponse | null>(null)
   const [error, setError] = useState<string>("")
   const [showMarkers, setShowMarkers] = useState(true)
-  const [padding, setPadding] = useState(0.2)
+  const [padding, setPadding] = useState(0.01)
+  const [markerSize, setMarkerSize] = useState(2)
+  const [plotLineWidth, setPlotLineWidth] = useState(1.5)
+  const [viewBounds, setViewBounds] = useState<Bounds>(DEFAULT_BOUNDS)
   const [dirtyAt, setDirtyAt] = useState<Record<number, number>>({})
   const [appliedAt, setAppliedAt] = useState<Record<number, number>>({})
 
@@ -217,7 +300,9 @@ function App(): JSX.Element {
         setTemplates(data)
         const firstName = Object.keys(data)[0] ?? ""
         setTemplateName(firstName)
-        setPipes(firstName ? data[firstName].map(duplicatePipe) : [])
+        const initialPipes = firstName ? data[firstName].map(duplicatePipe).map(lockPipeCenterX) : []
+        setPipes(initialPipes)
+        setViewBounds(computeBounds(initialPipes, padding))
       })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : String(err))
@@ -247,15 +332,11 @@ function App(): JSX.Element {
     return () => window.clearTimeout(timer)
   }, [pipes, dirtyAt])
 
-  const now = Date.now()
+  useEffect(() => {
+    setViewBounds(computeBounds(pipes, padding))
+  }, [padding])
 
-  const commonBounds = useMemo(() => {
-    if (pipes.length === 0) {
-      return { minX: -50, maxX: 50, minY: -50, maxY: 50 }
-    }
-    const all = pipes.map((pipe) => getPipeBounds([pipe.outer, pipe.inner], padding))
-    return mergeBounds(all)
-  }, [pipes, padding])
+  const now = Date.now()
 
   const markDirty = (pipeIdx: number) => {
     setDirtyAt((prev) => ({ ...prev, [pipeIdx]: Date.now() }))
@@ -264,7 +345,18 @@ function App(): JSX.Element {
   const updatePipe = (pipeIdx: number, nextPipe: Pipe) => {
     setPipes((prev) => {
       const updated = [...prev]
-      updated[pipeIdx] = nextPipe
+      const snappedPipe: Pipe = {
+        ...nextPipe,
+        outer: {
+          ...nextPipe.outer,
+          origin: [0, snapStep(nextPipe.outer.origin[1])],
+        },
+        inner: {
+          ...nextPipe.inner,
+          origin: [0, snapStep(nextPipe.inner.origin[1])],
+        },
+      }
+      updated[pipeIdx] = lockPipeCenterX(snappedPipe)
       return updated
     })
     markDirty(pipeIdx)
@@ -273,7 +365,11 @@ function App(): JSX.Element {
   const updatePipeShape = (pipeIdx: number, key: ShapeKey, nextShape: Shape) => {
     setPipes((prev) => {
       const updated = [...prev]
-      updated[pipeIdx] = { ...updated[pipeIdx], [key]: nextShape }
+      const snappedShape: Shape = {
+        ...nextShape,
+        origin: [0, snapStep(nextShape.origin[1])],
+      }
+      updated[pipeIdx] = lockPipeCenterX({ ...updated[pipeIdx], [key]: snappedShape })
       return updated
     })
     markDirty(pipeIdx)
@@ -308,7 +404,9 @@ function App(): JSX.Element {
           onChange={(event) => {
             const value = event.target.value
             setTemplateName(value)
-            setPipes((templates[value] ?? []).map(duplicatePipe))
+            const nextPipes = (templates[value] ?? []).map(duplicatePipe).map(lockPipeCenterX)
+            setPipes(nextPipes)
+            setViewBounds(computeBounds(nextPipes, padding))
             setDirtyAt({})
             setAppliedAt({})
           }}
@@ -343,6 +441,42 @@ function App(): JSX.Element {
           />
         </label>
 
+        <label className="field-label compact" htmlFor="marker-size-range">
+          <span>Marker size: {markerSize.toFixed(1)}</span>
+          <input
+            id="marker-size-range"
+            className="range-input"
+            type="range"
+            min={1}
+            max={10}
+            step={0.5}
+            value={markerSize}
+            onChange={(event) => setMarkerSize(Number(event.target.value))}
+          />
+        </label>
+
+        <label className="field-label compact" htmlFor="line-width-range">
+          <span>Plot line width: {plotLineWidth.toFixed(1)}</span>
+          <input
+            id="line-width-range"
+            className="range-input"
+            type="range"
+            min={0.5}
+            max={6}
+            step={0.1}
+            value={plotLineWidth}
+            onChange={(event) => setPlotLineWidth(Number(event.target.value))}
+          />
+        </label>
+
+        <button
+          type="button"
+          className="sidebar-button"
+          onClick={() => setViewBounds(computeBounds(pipes, padding))}
+        >
+          Fit View
+        </button>
+
         {error ? <p className="error">{error}</p> : null}
       </aside>
 
@@ -356,8 +490,10 @@ function App(): JSX.Element {
                 rightPipe={pipes[index + 1]}
                 onLeftPipeChange={(nextPipe) => updatePipe(index, nextPipe)}
                 onRightPipeChange={(nextPipe) => updatePipe(index + 1, nextPipe)}
-                bounds={commonBounds}
+                bounds={viewBounds}
                 showMarkers={showMarkers}
+                markerSize={markerSize}
+                plotLineWidth={plotLineWidth}
                 title={`Transition: Pipe ${index + 1} -> Pipe ${index + 2}`}
                 areaReduction={metrics?.area_reductions[index] ?? null}
                 eccentricityDiff={metrics?.eccentricity_diffs[index] ?? null}
@@ -379,7 +515,20 @@ function App(): JSX.Element {
                   className="field-input"
                   value={pipeTypeName(pipe)}
                   onChange={(event) =>
-                    updatePipe(index, convertPipeType(pipe, event.target.value as PipeType))
+                    (() => {
+                      const nextPipe = lockPipeCenterX(
+                        convertPipeType(pipe, event.target.value as PipeType)
+                      )
+                      updatePipe(index, nextPipe)
+                      setViewBounds(
+                        computeBounds(
+                          pipes.map((currentPipe, pipeIdx) =>
+                            pipeIdx === index ? nextPipe : currentPipe
+                          ),
+                          padding
+                        )
+                      )
+                    })()
                   }
                 >
                   {PIPE_TYPE_OPTIONS.map((option) => (
@@ -408,7 +557,11 @@ function App(): JSX.Element {
                   className="danger"
                   type="button"
                   onClick={() => {
-                    setPipes((prev) => prev.filter((_, pipeIdx) => pipeIdx !== index))
+                    setPipes((prev) => {
+                      const next = prev.filter((_, pipeIdx) => pipeIdx !== index)
+                      setViewBounds(computeBounds(next, padding))
+                      return next
+                    })
                     setDirtyAt({})
                     setAppliedAt({})
                   }}
@@ -420,7 +573,8 @@ function App(): JSX.Element {
                   onClick={() => {
                     setPipes((prev) => {
                       const next = [...prev]
-                      next.splice(index + 1, 0, duplicatePipe(pipe))
+                      next.splice(index + 1, 0, lockPipeCenterX(duplicatePipe(pipe)))
+                      setViewBounds(computeBounds(next, padding))
                       return next
                     })
                     setDirtyAt({})
