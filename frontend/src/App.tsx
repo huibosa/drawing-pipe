@@ -11,6 +11,13 @@ const PIPE_TYPE_OPTIONS: PipeType[] = ["CircleCircle", "RectRect", "SplineSpline
 const DEFAULT_BOUNDS: Bounds = { minX: -50, maxX: 50, minY: -50, maxY: 50 }
 
 type ShapeKey = "outer" | "inner"
+type PointKey = "origin" | "v1" | "v2" | "v3"
+
+type HoveredPointInput = {
+  pipeIndex: number
+  shapeKey: ShapeKey
+  pointKey: PointKey
+}
 
 function snapStep(value: number, step = 0.05): number {
   return Number((Math.round(value / step) * step).toFixed(6))
@@ -124,7 +131,9 @@ function PointFieldRow({
   y,
   onXChange,
   onYChange,
-  step = 0.05,
+  onHoverStart,
+  onHoverEnd,
+  step = 0.1,
   disabledX = false,
 }: {
   label: string
@@ -132,6 +141,8 @@ function PointFieldRow({
   y: number
   onXChange: (value: number) => void
   onYChange: (value: number) => void
+  onHoverStart?: () => void
+  onHoverEnd?: () => void
   step?: number
   disabledX?: boolean
 }): JSX.Element {
@@ -146,6 +157,8 @@ function PointFieldRow({
         disabled={disabledX}
         aria-label={`${label} x`}
         onChange={(event) => onXChange(Number(event.target.value))}
+        onMouseEnter={onHoverStart}
+        onMouseLeave={onHoverEnd}
       />
       <input
         className="field-input"
@@ -154,6 +167,8 @@ function PointFieldRow({
         step={step}
         aria-label={`${label} y`}
         onChange={(event) => onYChange(Number(event.target.value))}
+        onMouseEnter={onHoverStart}
+        onMouseLeave={onHoverEnd}
       />
     </div>
   )
@@ -163,7 +178,7 @@ function ScalarFieldRow({
   label,
   value,
   onChange,
-  step = 0.05,
+  step = 0.1,
   min,
 }: {
   label: string
@@ -191,12 +206,20 @@ function ScalarFieldRow({
 
 function ShapeEditor({
   title,
+  shapeKey,
+  pipeIndex,
   shape,
   onUpdate,
+  onPointHoverStart,
+  onPointHoverEnd,
 }: {
   title: string
+  shapeKey: ShapeKey
+  pipeIndex: number
   shape: Shape
   onUpdate: (nextShape: Shape) => void
+  onPointHoverStart: (target: HoveredPointInput) => void
+  onPointHoverEnd: () => void
 }): JSX.Element {
   return (
     <section className="shape-editor">
@@ -206,6 +229,8 @@ function ShapeEditor({
         x={0}
         y={shape.origin[1]}
         disabledX
+        onHoverStart={() => onPointHoverStart({ pipeIndex, shapeKey, pointKey: "origin" })}
+        onHoverEnd={onPointHoverEnd}
         onXChange={(value) => onUpdate(updateShapeField(shape, "ox", value))}
         onYChange={(value) => onUpdate(updateShapeField(shape, "oy", value))}
       />
@@ -248,6 +273,8 @@ function ShapeEditor({
             label="v1"
             x={shape.v1[0]}
             y={shape.v1[1]}
+            onHoverStart={() => onPointHoverStart({ pipeIndex, shapeKey, pointKey: "v1" })}
+            onHoverEnd={onPointHoverEnd}
             onXChange={(value) => onUpdate(updateShapeField(shape, "v1x", value))}
             onYChange={(value) => onUpdate(updateShapeField(shape, "v1y", value))}
           />
@@ -255,6 +282,8 @@ function ShapeEditor({
             label="v2"
             x={shape.v2[0]}
             y={shape.v2[1]}
+            onHoverStart={() => onPointHoverStart({ pipeIndex, shapeKey, pointKey: "v2" })}
+            onHoverEnd={onPointHoverEnd}
             onXChange={(value) => onUpdate(updateShapeField(shape, "v2x", value))}
             onYChange={(value) => onUpdate(updateShapeField(shape, "v2y", value))}
           />
@@ -262,6 +291,8 @@ function ShapeEditor({
             label="v3"
             x={shape.v3[0]}
             y={shape.v3[1]}
+            onHoverStart={() => onPointHoverStart({ pipeIndex, shapeKey, pointKey: "v3" })}
+            onHoverEnd={onPointHoverEnd}
             onXChange={(value) => onUpdate(updateShapeField(shape, "v3x", value))}
             onYChange={(value) => onUpdate(updateShapeField(shape, "v3y", value))}
           />
@@ -283,6 +314,10 @@ function App(): JSX.Element {
   const [markerSize, setMarkerSize] = useState(2)
   const [plotLineWidth, setPlotLineWidth] = useState(1.5)
   const [viewBounds, setViewBounds] = useState<Bounds>(DEFAULT_BOUNDS)
+  const [hoveredTransitionIndex, setHoveredTransitionIndex] = useState<number | null>(null)
+  const [hoveredPipeIndex, setHoveredPipeIndex] = useState<number | null>(null)
+  const [hoveredTransitionCardIndex, setHoveredTransitionCardIndex] = useState<number | null>(null)
+  const [hoveredPointInput, setHoveredPointInput] = useState<HoveredPointInput | null>(null)
 
   const loadTemplate = (name: string) => {
     const nextPipes = (templates[name] ?? []).map(duplicatePipe).map(lockPipeCenterX)
@@ -370,16 +405,23 @@ function App(): JSX.Element {
         <h1>Drawing Pipe Web</h1>
 
         <section className="metrics-sidebar">
-          <MetricLineChart title="Area Reduction Rate" series={areaSeries} valueFormatter={percent1} />
+          <MetricLineChart
+            title="Area Reduction Rate"
+            series={areaSeries}
+            valueFormatter={percent1}
+            onHoverIndexChange={setHoveredTransitionIndex}
+          />
           <MetricLineChart
             title="Eccentricity Difference"
             series={eccSeries}
             valueFormatter={decimal2}
+            onHoverIndexChange={setHoveredTransitionIndex}
           />
           <MetricLineChart
             title="Thickness Reduction Rate"
             series={thickSeries}
             valueFormatter={percent1}
+            onHoverIndexChange={setHoveredTransitionIndex}
           />
         </section>
 
@@ -505,14 +547,44 @@ function App(): JSX.Element {
                 areaReduction={metrics?.area_reductions[index] ?? null}
                 eccentricityDiff={metrics?.eccentricity_diffs[index] ?? null}
                 thicknessReduction={metrics?.thickness_reductions[index] ?? null}
+                highlighted={hoveredTransitionIndex === index}
+                emphasizedSide={
+                  hoveredPipeIndex === index
+                    ? "left"
+                    : hoveredPipeIndex === index + 1
+                      ? "right"
+                      : null
+                }
+                hoveredInputTarget={
+                  hoveredPointInput &&
+                  (hoveredPointInput.pipeIndex === index || hoveredPointInput.pipeIndex === index + 1)
+                    ? {
+                        side: hoveredPointInput.pipeIndex === index ? "left" : "right",
+                        shapeKey: hoveredPointInput.shapeKey,
+                        pointKey: hoveredPointInput.pointKey,
+                      }
+                    : null
+                }
+                onCardMouseEnter={() => setHoveredTransitionCardIndex(index)}
+                onCardMouseLeave={() => setHoveredTransitionCardIndex(null)}
               />
             ))}
           </section>
         ) : null}
 
         <section className="pipe-row">
-          {pipes.map((pipe, index) => (
-            <article key={`pipe-${index}`} className="pipe-card">
+          {pipes.map((pipe, index) => {
+            const linkedToHoveredTransition =
+              hoveredTransitionCardIndex === index || hoveredTransitionCardIndex === index - 1
+            const highlightedByHover = hoveredPipeIndex === index || linkedToHoveredTransition
+
+            return (
+              <article
+                key={`pipe-${index}`}
+                className={`pipe-card${highlightedByHover ? " hovered" : ""}`}
+                onMouseEnter={() => setHoveredPipeIndex(index)}
+                onMouseLeave={() => setHoveredPipeIndex(null)}
+              >
               <h2>Pipe {index + 1}</h2>
 
               <label className="field-label compact" htmlFor={`pipe-type-${index}`}>
@@ -548,13 +620,21 @@ function App(): JSX.Element {
 
               <ShapeEditor
                 title="Outer"
+                shapeKey="outer"
+                pipeIndex={index}
                 shape={pipe.outer}
                 onUpdate={(nextShape) => updatePipeShape(index, "outer", nextShape)}
+                onPointHoverStart={setHoveredPointInput}
+                onPointHoverEnd={() => setHoveredPointInput(null)}
               />
               <ShapeEditor
                 title="Inner"
+                shapeKey="inner"
+                pipeIndex={index}
                 shape={pipe.inner}
                 onUpdate={(nextShape) => updatePipeShape(index, "inner", nextShape)}
+                onPointHoverStart={setHoveredPointInput}
+                onPointHoverEnd={() => setHoveredPointInput(null)}
               />
 
               <div className="pipe-actions">
@@ -586,7 +666,8 @@ function App(): JSX.Element {
                 </button>
               </div>
             </article>
-          ))}
+            )
+          })}
         </section>
       </main>
     </div>

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 type Series = {
   name: string
@@ -10,6 +10,7 @@ type MetricLineChartProps = {
   title: string
   series: Series[]
   valueFormatter?: (value: number) => string
+  onHoverIndexChange?: (index: number | null) => void
 }
 
 const WIDTH = 360
@@ -26,6 +27,7 @@ type HoverPoint = {
   y: number
   label: string
   color: string
+  transitionIndex: number
 }
 
 function pathFromPoints(points: [number, number][]): string {
@@ -42,8 +44,16 @@ export function MetricLineChart({
   title,
   series,
   valueFormatter,
+  onHoverIndexChange,
 }: MetricLineChartProps): JSX.Element {
   const [hovered, setHovered] = useState<HoverPoint | null>(null)
+
+  useEffect(
+    () => () => {
+      onHoverIndexChange?.(null)
+    },
+    [onHoverIndexChange]
+  )
   const nonEmpty = series.filter((s) => s.values.length > 0)
   const maxPoints = nonEmpty.reduce((acc, s) => Math.max(acc, s.values.length), 0)
 
@@ -84,7 +94,16 @@ export function MetricLineChart({
   return (
     <section className="metric-card">
       <h3>{title}</h3>
-      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="metric-svg" role="img" aria-label={title}>
+      <svg
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        className="metric-svg"
+        role="img"
+        aria-label={title}
+        onMouseLeave={() => {
+          setHovered(null)
+          onHoverIndexChange?.(null)
+        }}
+      >
         <line
           x1={PAD_LEFT}
           y1={HEIGHT - PAD_BOTTOM}
@@ -157,22 +176,33 @@ export function MetricLineChart({
                     fill="transparent"
                     style={{ cursor: "pointer" }}
                     onMouseEnter={() =>
-                      setHovered({
-                        x: px,
-                        y: py,
-                        label: formatValue(s.values[index]),
-                        color: s.color,
-                      })
+                      (() => {
+                        setHovered({
+                          x: px,
+                          y: py,
+                          label: formatValue(s.values[index]),
+                          color: s.color,
+                          transitionIndex: index,
+                        })
+                        onHoverIndexChange?.(index)
+                      })()
                     }
                     onMouseMove={() =>
-                      setHovered({
-                        x: px,
-                        y: py,
-                        label: formatValue(s.values[index]),
-                        color: s.color,
-                      })
+                      (() => {
+                        setHovered({
+                          x: px,
+                          y: py,
+                          label: formatValue(s.values[index]),
+                          color: s.color,
+                          transitionIndex: index,
+                        })
+                        onHoverIndexChange?.(index)
+                      })()
                     }
-                    onMouseLeave={() => setHovered(null)}
+                    onMouseLeave={() => {
+                      setHovered(null)
+                      onHoverIndexChange?.(null)
+                    }}
                   />
                 </g>
               ))}

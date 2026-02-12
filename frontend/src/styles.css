@@ -124,6 +124,13 @@ body {
   border-radius: 10px;
   padding: 10px;
   background: #fff;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+
+.transition-card.highlighted {
+  border-color: #d61f2c;
+  background: #fff1f2;
+  box-shadow: 0 0 0 2px rgba(214, 31, 44, 0.35);
 }
 
 .transition-card h3 {
@@ -137,6 +144,11 @@ body {
   border: 1px solid #e2e7ef;
   border-radius: 8px;
   background: #fafcff;
+  transition: border-color 120ms ease;
+}
+
+.transition-card.highlighted .transition-svg {
+  border-color: #ef4444;
 }
 
 .transition-metrics {
@@ -222,6 +234,13 @@ body {
   background: #fff;
   display: grid;
   gap: 10px;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.pipe-card.hovered {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.45);
+  background: #ffe8ea;
 }
 
 .pipe-card h2 {

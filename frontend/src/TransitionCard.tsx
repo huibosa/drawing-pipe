@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 import { vertices } from "./geometry"
 import type { Bounds, Pipe } from "./types"
 
@@ -16,9 +16,21 @@ type TransitionCardProps = {
   areaReduction: number | null
   eccentricityDiff: number | null
   thicknessReduction: number[] | null
+  highlighted?: boolean
+  emphasizedSide?: "left" | "right" | null
+  hoveredInputTarget?: {
+    side: "left" | "right"
+    shapeKey: "outer" | "inner"
+    pointKey: "origin" | "v1" | "v2" | "v3"
+  } | null
+  onCardMouseEnter?: () => void
+  onCardMouseLeave?: () => void
 }
 
 const SIZE = 260
+const EMPHASIS_SHADOW =
+  "drop-shadow(0 0 7px rgba(37, 99, 235, 0.35)) drop-shadow(0 0 3px rgba(56, 189, 248, 0.3))"
+const EMPHASIS_FILL = "rgba(59, 130, 246, 0.14)"
 
 function snapStep(value: number, step = 0.05): number {
   return Number((Math.round(value / step) * step).toFixed(6))
@@ -44,6 +56,31 @@ type Viewport = {
   scale: number
   offsetX: number
   offsetY: number
+}
+
+function markerMatchesHoveredInput(
+  marker: MarkerMeta,
+  hoveredInputTarget: TransitionCardProps["hoveredInputTarget"]
+): boolean {
+  if (!hoveredInputTarget || marker.side !== hoveredInputTarget.side) {
+    return false
+  }
+
+  if (hoveredInputTarget.pointKey === "origin") {
+    return marker.kind === "center"
+  }
+
+  if (marker.kind !== "shape" || marker.shapeKey !== hoveredInputTarget.shapeKey) {
+    return false
+  }
+
+  if (hoveredInputTarget.pointKey === "v1") {
+    return marker.markerIndex === 0 || marker.markerIndex === 4
+  }
+  if (hoveredInputTarget.pointKey === "v2") {
+    return marker.markerIndex === 1 || marker.markerIndex === 3
+  }
+  return marker.markerIndex === 2
 }
 
 function viewportFromBounds(bounds: Bounds): Viewport {
@@ -240,6 +277,11 @@ export function TransitionCard({
   areaReduction,
   eccentricityDiff,
   thicknessReduction,
+  highlighted = false,
+  emphasizedSide = null,
+  hoveredInputTarget = null,
+  onCardMouseEnter,
+  onCardMouseLeave,
 }: TransitionCardProps): JSX.Element {
   const svgRef = useRef<SVGSVGElement | null>(null)
   const draggingPointerId = useRef<number | null>(null)
@@ -328,8 +370,33 @@ export function TransitionCard({
     }
   }
 
+  const hasSideEmphasis = emphasizedSide !== null
+  const leftEmphasized = emphasizedSide === "left"
+  const rightEmphasized = emphasizedSide === "right"
+  const leftStrokeOpacity = hasSideEmphasis ? (leftEmphasized ? 1 : 0.34) : 1
+  const rightStrokeOpacity = hasSideEmphasis ? (rightEmphasized ? 1 : 0.34) : 1
+
+  const beginMarkerDrag = (event: ReactPointerEvent<SVGElement>, marker: MarkerMeta) => {
+    if (!markersDraggable) {
+      return
+    }
+    event.preventDefault()
+    draggingPointerId.current = event.pointerId
+    svgRef.current?.setPointerCapture(event.pointerId)
+    setActiveMarker({
+      side: marker.side,
+      kind: marker.kind,
+      shapeKey: marker.shapeKey,
+      markerIndex: marker.markerIndex,
+    })
+  }
+
   return (
-    <section className="transition-card">
+    <section
+      className={`transition-card${highlighted ? " highlighted" : ""}`}
+      onMouseEnter={onCardMouseEnter}
+      onMouseLeave={onCardMouseLeave}
+    >
       <h3>{title}</h3>
       <svg
         ref={svgRef}
@@ -353,67 +420,114 @@ export function TransitionCard({
           setActiveMarker(null)
         }}
       >
-        <path
-          d={ringPath(leftPipe, viewport)}
-          fill="#174a95"
-          fillOpacity={0.18}
-          fillRule="evenodd"
-          stroke="none"
-        />
+        {leftEmphasized ? (
+          <path
+            d={ringPath(leftPipe, viewport)}
+            fill={EMPHASIS_FILL}
+            fillRule="evenodd"
+            stroke="none"
+            style={{ filter: EMPHASIS_SHADOW }}
+          />
+        ) : null}
+        {rightEmphasized ? (
+          <path
+            d={ringPath(rightPipe, viewport)}
+            fill={EMPHASIS_FILL}
+            fillRule="evenodd"
+            stroke="none"
+            style={{ filter: EMPHASIS_SHADOW }}
+          />
+        ) : null}
         <path
           d={shapePath(leftPipe, "outer", viewport)}
           stroke="#174a95"
-          strokeWidth={plotLineWidth}
+          strokeWidth={leftEmphasized ? plotLineWidth * 1.35 : hasSideEmphasis ? plotLineWidth * 0.85 : plotLineWidth}
+          strokeOpacity={leftStrokeOpacity}
           fill="none"
         />
         <path
           d={shapePath(leftPipe, "inner", viewport)}
-          stroke="#0c8a61"
-          strokeWidth={plotLineWidth * 0.9}
+          stroke="#174a95"
+          strokeWidth={
+            leftEmphasized ? plotLineWidth * 1.2 : hasSideEmphasis ? plotLineWidth * 0.78 : plotLineWidth * 0.9
+          }
+          strokeOpacity={leftStrokeOpacity}
           fill="none"
         />
         <path
           d={shapePath(rightPipe, "outer", viewport)}
-          stroke="#d95f02"
-          strokeWidth={plotLineWidth}
+          stroke="#dc2626"
+          strokeWidth={
+            rightEmphasized ? plotLineWidth * 1.35 : hasSideEmphasis ? plotLineWidth * 0.85 : plotLineWidth
+          }
+          strokeOpacity={rightStrokeOpacity}
           fill="none"
           strokeDasharray="6 4"
         />
         <path
           d={shapePath(rightPipe, "inner", viewport)}
-          stroke="#9442a3"
-          strokeWidth={plotLineWidth * 0.9}
+          stroke="#dc2626"
+          strokeWidth={
+            rightEmphasized
+              ? plotLineWidth * 1.2
+              : hasSideEmphasis
+                ? plotLineWidth * 0.78
+                : plotLineWidth * 0.9
+          }
+          strokeOpacity={rightStrokeOpacity}
           fill="none"
           strokeDasharray="6 4"
         />
         {showMarkers
           ? allMarkers.map((marker) => {
               const [x, y] = project(marker.point, viewport)
+              const inputHovered = markerMatchesHoveredInput(marker, hoveredInputTarget)
+              const markerRadius = inputHovered ? markerSize * 2.1 : markerSize
+              const crossHalfSize = markerRadius * 0.82
               return (
-                <circle
-                  key={marker.key}
-                  cx={x}
-                  cy={y}
-                  r={markerSize}
-                  fill={marker.kind === "center" ? "#fef08a" : "#ffffff"}
-                  stroke={marker.kind === "center" ? "#a16207" : "#2b3340"}
-                  strokeWidth={1}
-                  style={{ cursor: markersDraggable ? "grab" : "default" }}
-                  onPointerDown={(event) => {
-                    if (!markersDraggable) {
-                      return
-                    }
-                    event.preventDefault()
-                    draggingPointerId.current = event.pointerId
-                    svgRef.current?.setPointerCapture(event.pointerId)
-                    setActiveMarker({
-                      side: marker.side,
-                      kind: marker.kind,
-                      shapeKey: marker.shapeKey,
-                      markerIndex: marker.markerIndex,
-                    })
-                  }}
-                />
+                <g key={marker.key} style={{ cursor: markersDraggable ? "grab" : "default" }}>
+                  {inputHovered ? (
+                    <>
+                      <line
+                        x1={x - crossHalfSize}
+                        y1={y - crossHalfSize}
+                        x2={x + crossHalfSize}
+                        y2={y + crossHalfSize}
+                        stroke={marker.kind === "center" ? "#a16207" : "#dc2626"}
+                        strokeWidth={2.2}
+                        strokeLinecap="round"
+                        onPointerDown={(event) => beginMarkerDrag(event, marker)}
+                      />
+                      <line
+                        x1={x - crossHalfSize}
+                        y1={y + crossHalfSize}
+                        x2={x + crossHalfSize}
+                        y2={y - crossHalfSize}
+                        stroke={marker.kind === "center" ? "#a16207" : "#dc2626"}
+                        strokeWidth={2.2}
+                        strokeLinecap="round"
+                        onPointerDown={(event) => beginMarkerDrag(event, marker)}
+                      />
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r={markerRadius}
+                        fill="transparent"
+                        onPointerDown={(event) => beginMarkerDrag(event, marker)}
+                      />
+                    </>
+                  ) : (
+                    <circle
+                      cx={x}
+                      cy={y}
+                      r={markerRadius}
+                      fill={marker.kind === "center" ? "#fef08a" : "#ffffff"}
+                      stroke={marker.kind === "center" ? "#a16207" : "#2b3340"}
+                      strokeWidth={1}
+                      onPointerDown={(event) => beginMarkerDrag(event, marker)}
+                    />
+                  )}
+                </g>
               )
             })
           : null}
