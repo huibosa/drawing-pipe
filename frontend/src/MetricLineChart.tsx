@@ -11,6 +11,7 @@ type MetricLineChartProps = {
   series: Series[]
   valueFormatter?: (value: number) => string
   onHoverIndexChange?: (index: number | null) => void
+  emptyText?: string
 }
 
 const WIDTH = 360
@@ -45,6 +46,7 @@ export function MetricLineChart({
   series,
   valueFormatter,
   onHoverIndexChange,
+  emptyText = "Not enough data",
 }: MetricLineChartProps): JSX.Element {
   const [hovered, setHovered] = useState<HoverPoint | null>(null)
 
@@ -61,7 +63,7 @@ export function MetricLineChart({
     return (
       <section className="metric-card">
         <h3>{title}</h3>
-        <p className="metric-empty">Not enough data</p>
+        <p className="metric-empty">{emptyText}</p>
       </section>
     )
   }

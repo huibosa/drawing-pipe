@@ -1,0 +1,76 @@
+export type Locale = "en" | "zh-CN"
+
+const MESSAGES: Record<Locale, Record<string, string>> = {
+  en: {
+    appTitle: "Drawing Pipe Web",
+    languageToggle: "中文",
+    template: "Template",
+    reload: "Reload",
+    reloadSelectedTemplate: "Reload selected template",
+    showMarkers: "Show markers",
+    enableTransitionMarkerDrag: "Enable transition marker drag",
+    padding: "Padding",
+    markerSize: "Marker size",
+    plotLineWidth: "Plot line width",
+    fitView: "Fit View",
+    areaReductionRate: "Area Reduction Rate",
+    eccentricity: "Eccentricity Difference",
+    thicknessReductionRate: "Thickness Reduction Rate",
+    notEnoughData: "Not enough data",
+    area: "area",
+    ecc: "ecc",
+    transitionTitle: "Transition: Pipe {from} -> Pipe {to}",
+    pipe: "Pipe",
+    pipeTitle: "Pipe {index}",
+    pipeType: "Pipe type",
+    outer: "Outer",
+    inner: "Inner",
+    origin: "origin",
+    length: "length",
+    width: "width",
+    filletRadius: "fillet radius",
+    v1: "v1",
+    v2: "v2",
+    v3: "v3",
+  },
+  "zh-CN": {
+    appTitle: "拉管成形",
+    languageToggle: "English",
+    template: "模板",
+    reload: "重新加载",
+    reloadSelectedTemplate: "重新加载所选模板",
+    showMarkers: "显示标记点",
+    enableTransitionMarkerDrag: "启用道次图标记拖拽",
+    padding: "留白",
+    markerSize: "标记尺寸",
+    plotLineWidth: "线宽",
+    fitView: "自适应视图",
+    areaReductionRate: "变形量",
+    eccentricity: "偏心度",
+    thicknessReductionRate: "减壁率",
+    notEnoughData: "数据不足",
+    area: "变形量",
+    ecc: "偏心度",
+    transitionTitle: "道次: 管材 {from} -> 管材 {to}",
+    pipe: "管材",
+    pipeTitle: "管材 {index}",
+    pipeType: "管材类型",
+    outer: "外轮廓",
+    inner: "内轮廓",
+    origin: "原点",
+    length: "长度",
+    width: "宽度",
+    filletRadius: "圆角半径",
+    v1: "控制点1",
+    v2: "控制点2",
+    v3: "控制点3",
+  },
+}
+
+export function t(locale: Locale, key: string, params?: Record<string, string | number>): string {
+  const template = MESSAGES[locale][key] ?? MESSAGES.en[key] ?? key
+  if (!params) {
+    return template
+  }
+  return template.replace(/\{(\w+)\}/g, (_, token: string) => String(params[token] ?? `{${token}}`))
+}

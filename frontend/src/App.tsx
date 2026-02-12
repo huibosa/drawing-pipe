@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import { analyzeProfile, fetchTemplates } from "./api"
 import { getPipeBounds, mergeBounds } from "./geometry"
+import type { Locale } from "./i18n"
+import { t } from "./i18n"
 import { MetricLineChart } from "./MetricLineChart"
 import { convertPipeType, duplicatePipe, pipeTypeName } from "./pipeUtils"
 import { TransitionCard } from "./TransitionCard"
@@ -9,6 +11,7 @@ import "./styles.css"
 
 const PIPE_TYPE_OPTIONS: PipeType[] = ["CircleCircle", "RectRect", "SplineSpline"]
 const DEFAULT_BOUNDS: Bounds = { minX: -50, maxX: 50, minY: -50, maxY: 50 }
+const LOCALE_STORAGE_KEY = "drawing-pipe-locale"
 
 type ShapeKey = "outer" | "inner"
 type PointKey = "origin" | "v1" | "v2" | "v3"
@@ -206,6 +209,13 @@ function ScalarFieldRow({
 
 function ShapeEditor({
   title,
+  originLabel,
+  lengthLabel,
+  widthLabel,
+  filletRadiusLabel,
+  v1Label,
+  v2Label,
+  v3Label,
   shapeKey,
   pipeIndex,
   shape,
@@ -214,6 +224,13 @@ function ShapeEditor({
   onPointHoverEnd,
 }: {
   title: string
+  originLabel: string
+  lengthLabel: string
+  widthLabel: string
+  filletRadiusLabel: string
+  v1Label: string
+  v2Label: string
+  v3Label: string
   shapeKey: ShapeKey
   pipeIndex: number
   shape: Shape
@@ -225,7 +242,7 @@ function ShapeEditor({
     <section className="shape-editor">
       <h4>{title}</h4>
       <PointFieldRow
-        label="origin"
+        label={originLabel}
         x={0}
         y={shape.origin[1]}
         disabledX
@@ -237,7 +254,7 @@ function ShapeEditor({
 
       {shape.shape_type === "Circle" ? (
         <ScalarFieldRow
-          label={title === "Outer" ? "D" : "d"}
+          label={shapeKey === "outer" ? "D" : "d"}
           value={shape.diameter}
           min={0.01}
           onChange={(value) => onUpdate(updateShapeField(shape, "diameter", value))}
@@ -247,19 +264,19 @@ function ShapeEditor({
       {shape.shape_type === "Rect" ? (
         <>
           <ScalarFieldRow
-            label="length"
+            label={lengthLabel}
             value={shape.length}
             min={0.01}
             onChange={(value) => onUpdate(updateShapeField(shape, "length", value))}
           />
           <ScalarFieldRow
-            label="width"
+            label={widthLabel}
             value={shape.width}
             min={0.01}
             onChange={(value) => onUpdate(updateShapeField(shape, "width", value))}
           />
           <ScalarFieldRow
-            label="fillet radius"
+            label={filletRadiusLabel}
             value={shape.fillet_radius}
             min={0.01}
             onChange={(value) => onUpdate(updateShapeField(shape, "fillet_radius", value))}
@@ -270,7 +287,7 @@ function ShapeEditor({
       {shape.shape_type === "CubicSplineShape" ? (
         <>
           <PointFieldRow
-            label="v1"
+            label={v1Label}
             x={shape.v1[0]}
             y={shape.v1[1]}
             onHoverStart={() => onPointHoverStart({ pipeIndex, shapeKey, pointKey: "v1" })}
@@ -279,7 +296,7 @@ function ShapeEditor({
             onYChange={(value) => onUpdate(updateShapeField(shape, "v1y", value))}
           />
           <PointFieldRow
-            label="v2"
+            label={v2Label}
             x={shape.v2[0]}
             y={shape.v2[1]}
             onHoverStart={() => onPointHoverStart({ pipeIndex, shapeKey, pointKey: "v2" })}
@@ -288,7 +305,7 @@ function ShapeEditor({
             onYChange={(value) => onUpdate(updateShapeField(shape, "v2y", value))}
           />
           <PointFieldRow
-            label="v3"
+            label={v3Label}
             x={shape.v3[0]}
             y={shape.v3[1]}
             onHoverStart={() => onPointHoverStart({ pipeIndex, shapeKey, pointKey: "v3" })}
@@ -303,6 +320,10 @@ function ShapeEditor({
 }
 
 function App(): JSX.Element {
+  const [locale, setLocale] = useState<Locale>(() => {
+    const stored = window.localStorage.getItem(LOCALE_STORAGE_KEY)
+    return stored === "zh-CN" ? "zh-CN" : "en"
+  })
   const [templates, setTemplates] = useState<Record<string, Pipe[]>>({})
   const [templateName, setTemplateName] = useState<string>("")
   const [pipes, setPipes] = useState<Pipe[]>([])
@@ -318,6 +339,10 @@ function App(): JSX.Element {
   const [hoveredPipeIndex, setHoveredPipeIndex] = useState<number | null>(null)
   const [hoveredTransitionCardIndex, setHoveredTransitionCardIndex] = useState<number | null>(null)
   const [hoveredPointInput, setHoveredPointInput] = useState<HoveredPointInput | null>(null)
+
+  useEffect(() => {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, locale)
+  }, [locale])
 
   const loadTemplate = (name: string) => {
     const nextPipes = (templates[name] ?? []).map(duplicatePipe).map(lockPipeCenterX)
@@ -392,41 +417,53 @@ function App(): JSX.Element {
   }
 
   const areaSeries = metrics
-    ? [{ name: "area", values: metrics.area_reductions, color: "#174a95" }]
+    ? [{ name: t(locale, "area"), values: metrics.area_reductions, color: "#174a95" }]
     : []
   const eccSeries = metrics
-    ? [{ name: "ecc", values: metrics.eccentricity_diffs, color: "#0c8a61" }]
+    ? [{ name: t(locale, "ecc"), values: metrics.eccentricity_diffs, color: "#0c8a61" }]
     : []
   const thickSeries = thicknessSeries(metrics)
 
   return (
     <div className="app-shell">
       <aside className="side-panel">
-        <h1>Drawing Pipe Web</h1>
+        <div className="locale-row">
+          <h1>{t(locale, "appTitle")}</h1>
+          <button
+            type="button"
+            className="locale-toggle"
+            onClick={() => setLocale((prev) => (prev === "en" ? "zh-CN" : "en"))}
+          >
+            {t(locale, "languageToggle")}
+          </button>
+        </div>
 
         <section className="metrics-sidebar">
           <MetricLineChart
-            title="Area Reduction Rate"
+            title={t(locale, "areaReductionRate")}
             series={areaSeries}
             valueFormatter={percent1}
             onHoverIndexChange={setHoveredTransitionIndex}
+            emptyText={t(locale, "notEnoughData")}
           />
           <MetricLineChart
-            title="Eccentricity Difference"
+            title={t(locale, "eccentricity")}
             series={eccSeries}
             valueFormatter={decimal2}
             onHoverIndexChange={setHoveredTransitionIndex}
+            emptyText={t(locale, "notEnoughData")}
           />
           <MetricLineChart
-            title="Thickness Reduction Rate"
+            title={t(locale, "thicknessReductionRate")}
             series={thickSeries}
             valueFormatter={percent1}
             onHoverIndexChange={setHoveredTransitionIndex}
+            emptyText={t(locale, "notEnoughData")}
           />
         </section>
 
         <label className="field-label" htmlFor="template-select">
-          Template
+          {t(locale, "template")}
         </label>
         <div className="template-row">
           <select
@@ -450,10 +487,10 @@ function App(): JSX.Element {
             className="template-refresh"
             onClick={() => loadTemplate(templateName)}
             disabled={!templateName}
-            aria-label="Reload selected template"
-            title="Reload template"
+            aria-label={t(locale, "reloadSelectedTemplate")}
+            title={t(locale, "reload")}
           >
-            Reload
+            {t(locale, "reload")}
           </button>
         </div>
 
@@ -463,7 +500,7 @@ function App(): JSX.Element {
             checked={showMarkers}
             onChange={(event) => setShowMarkers(event.target.checked)}
           />
-          <span>Show markers</span>
+          <span>{t(locale, "showMarkers")}</span>
         </label>
 
         <label className="checkbox-row">
@@ -472,11 +509,13 @@ function App(): JSX.Element {
             checked={enableTransitionMarkerDrag}
             onChange={(event) => setEnableTransitionMarkerDrag(event.target.checked)}
           />
-          <span>Enable transition marker drag</span>
+          <span>{t(locale, "enableTransitionMarkerDrag")}</span>
         </label>
 
         <label className="field-label compact" htmlFor="padding-range">
-          <span>Padding: {padding.toFixed(2)}</span>
+          <span>
+            {t(locale, "padding")}: {padding.toFixed(2)}
+          </span>
           <input
             id="padding-range"
             className="range-input"
@@ -490,7 +529,9 @@ function App(): JSX.Element {
         </label>
 
         <label className="field-label compact" htmlFor="marker-size-range">
-          <span>Marker size: {markerSize.toFixed(1)}</span>
+          <span>
+            {t(locale, "markerSize")}: {markerSize.toFixed(1)}
+          </span>
           <input
             id="marker-size-range"
             className="range-input"
@@ -504,7 +545,9 @@ function App(): JSX.Element {
         </label>
 
         <label className="field-label compact" htmlFor="line-width-range">
-          <span>Plot line width: {plotLineWidth.toFixed(1)}</span>
+          <span>
+            {t(locale, "plotLineWidth")}: {plotLineWidth.toFixed(1)}
+          </span>
           <input
             id="line-width-range"
             className="range-input"
@@ -522,7 +565,7 @@ function App(): JSX.Element {
           className="sidebar-button"
           onClick={() => setViewBounds(computeBounds(pipes, padding))}
         >
-          Fit View
+          {t(locale, "fitView")}
         </button>
 
         {error ? <p className="error">{error}</p> : null}
@@ -543,7 +586,7 @@ function App(): JSX.Element {
                 markersDraggable={enableTransitionMarkerDrag}
                 markerSize={markerSize}
                 plotLineWidth={plotLineWidth}
-                title={`Transition: Pipe ${index + 1} -> Pipe ${index + 2}`}
+                title={t(locale, "transitionTitle", { from: index + 1, to: index + 2 })}
                 areaReduction={metrics?.area_reductions[index] ?? null}
                 eccentricityDiff={metrics?.eccentricity_diffs[index] ?? null}
                 thicknessReduction={metrics?.thickness_reductions[index] ?? null}
@@ -590,10 +633,10 @@ function App(): JSX.Element {
                 onMouseEnter={() => setHoveredPipeIndex(index)}
                 onMouseLeave={() => setHoveredPipeIndex(null)}
               >
-              <h2>Pipe {index + 1}</h2>
+              <h2>{t(locale, "pipeTitle", { index: index + 1 })}</h2>
 
               <label className="field-label compact" htmlFor={`pipe-type-${index}`}>
-                <span>Pipe type</span>
+                <span>{t(locale, "pipeType")}</span>
                 <select
                   id={`pipe-type-${index}`}
                   className="field-input"
@@ -624,7 +667,14 @@ function App(): JSX.Element {
               </label>
 
               <ShapeEditor
-                title="Outer"
+                title={t(locale, "outer")}
+                originLabel={t(locale, "origin")}
+                lengthLabel={t(locale, "length")}
+                widthLabel={t(locale, "width")}
+                filletRadiusLabel={t(locale, "filletRadius")}
+                v1Label={t(locale, "v1")}
+                v2Label={t(locale, "v2")}
+                v3Label={t(locale, "v3")}
                 shapeKey="outer"
                 pipeIndex={index}
                 shape={pipe.outer}
@@ -633,7 +683,14 @@ function App(): JSX.Element {
                 onPointHoverEnd={() => setHoveredPointInput(null)}
               />
               <ShapeEditor
-                title="Inner"
+                title={t(locale, "inner")}
+                originLabel={t(locale, "origin")}
+                lengthLabel={t(locale, "length")}
+                widthLabel={t(locale, "width")}
+                filletRadiusLabel={t(locale, "filletRadius")}
+                v1Label={t(locale, "v1")}
+                v2Label={t(locale, "v2")}
+                v3Label={t(locale, "v3")}
                 shapeKey="inner"
                 pipeIndex={index}
                 shape={pipe.inner}

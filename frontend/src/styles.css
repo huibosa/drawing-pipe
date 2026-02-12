@@ -51,6 +51,26 @@ body {
   font-weight: 700;
 }
 
+.locale-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 10px;
+}
+
+.locale-toggle {
+  height: 32px;
+  border: 1px solid #b8c5d6;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #ffffff;
+  color: #1f3f66;
+  font-family: var(--font-ui);
+  font-size: var(--fs-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .field-label {
   display: flex;
   flex-direction: column;
