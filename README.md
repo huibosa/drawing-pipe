@@ -1,6 +1,6 @@
 # Drawing Pipe Process Explorer
 
-An interactive geometric library and visualization tool for calculating pipe properties (area, eccentricity, vertex distances, thickness) through a manufacturing process.
+An interactive geometric library and web app for calculating pipe properties (area, eccentricity, vertex distances, thickness) through a manufacturing process.
 
 ## Features
 
@@ -71,7 +71,6 @@ drawing_pipe/
 ├── shapes.py            # Shape models (Circle, Rect, CubicSplineShape)
 ├── process.py           # Process analysis calculations
 ├── fixtures.py          # Pre-defined pipe templates
-├── visualization/       # Visualization and plotting utilities
 └── images/              # Screenshots and assets
 ```
 

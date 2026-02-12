@@ -30,7 +30,6 @@ ruff check . && uv run python -m py_compile backend/main.py backend/domain.py &&
 - Use `bun` for frontend commands.
 - Do **not** create `.venv`.
 - Do **not** install with `pip` in this repo.
-- Do **not** add matplotlib x/y axis labels.
 - Keep code/docs/commits in English.
 
 ## Rule File Discovery
