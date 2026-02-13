@@ -6,9 +6,7 @@ function resolveApiBase(): string {
     return fromEnv.replace(/\/$/, "")
   }
 
-  const protocol = window.location.protocol
-  const hostname = window.location.hostname
-  return `${protocol}//${hostname}:8000`
+  return ""
 }
 
 const API_BASE = resolveApiBase()
