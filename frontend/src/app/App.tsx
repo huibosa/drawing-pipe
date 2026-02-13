@@ -490,7 +490,7 @@ function App(): JSX.Element {
   const [metrics, setMetrics] = useState<AnalyzeResponse | null>(null)
   const [error, setError] = useState<string>("")
   const [showMarkers, setShowMarkers] = useState(true)
-  const [enableTransitionMarkerDrag, setEnableTransitionMarkerDrag] = useState(false)
+  const [enableTransitionMarkerDrag, setEnableTransitionMarkerDrag] = useState(true)
   const [padding, setPadding] = useState(0.01)
   const [markerSize, setMarkerSize] = useState(2)
   const [plotLineWidth, setPlotLineWidth] = useState(2.0)
