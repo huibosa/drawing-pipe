@@ -1,4 +1,3 @@
 __pycache__
-fixtures.py
 src/*.egg-info/
 .envrc
