@@ -482,7 +482,7 @@ function ShapeEditor({
 function App(): JSX.Element {
   const [locale, setLocale] = useState<Locale>(() => {
     const stored = window.localStorage.getItem(LOCALE_STORAGE_KEY)
-    return stored === "zh-CN" ? "zh-CN" : "en"
+    return stored === "zh-CN" ? "zh-CN" : "zh-CN"
   })
   const [templates, setTemplates] = useState<Record<string, Pipe[]>>({})
   const [templateName, setTemplateName] = useState<string>("")
