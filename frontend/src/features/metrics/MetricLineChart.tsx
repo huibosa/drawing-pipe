@@ -24,6 +24,7 @@ const PAD_RIGHT = 12
 const PAD_TOP = 12
 const PAD_BOTTOM = 26
 const MARKER_RADIUS = 2.8
+const MARKER_HOVER_RADIUS = 5.2
 const MARKER_HIT_RADIUS = 9
 
 type HoverPoint = {
@@ -53,6 +54,7 @@ export function MetricLineChart({
   emptyText = "Not enough data",
 }: MetricLineChartProps): JSX.Element {
   const [hovered, setHovered] = useState<HoverPoint | null>(null)
+  const [hoveredPointKey, setHoveredPointKey] = useState<string | null>(null)
   const nonEmpty = series.filter((s) => s.values.length > 0)
   const maxPoints = nonEmpty.reduce((acc, s) => Math.max(acc, s.values.length), 0)
 
@@ -100,6 +102,7 @@ export function MetricLineChart({
         aria-label={title}
         onMouseLeave={() => {
           setHovered(null)
+          setHoveredPointKey(null)
           onHoverIndexChange?.(null)
           onHoverPointChange?.(null)
         }}
@@ -168,7 +171,15 @@ export function MetricLineChart({
               <path d={pathFromPoints(points)} fill="none" stroke={s.color} strokeWidth={2} />
               {points.map(([px, py], index) => (
                 <g key={`${s.name}-${index}`}>
-                  <circle cx={px} cy={py} r={MARKER_RADIUS} fill="#ffffff" stroke={s.color} />
+                  <circle
+                    cx={px}
+                    cy={py}
+                    r={hoveredPointKey === `${s.name}-${index}` ? MARKER_HOVER_RADIUS : MARKER_RADIUS}
+                    fill="#ffffff"
+                    stroke={s.color}
+                    strokeWidth={hoveredPointKey === `${s.name}-${index}` ? 1.8 : 1}
+                    style={{ transition: "r 120ms ease, stroke-width 120ms ease" }}
+                  />
                   <circle
                     cx={px}
                     cy={py}
@@ -184,6 +195,7 @@ export function MetricLineChart({
                           color: s.color,
                           transitionIndex: index,
                         })
+                        setHoveredPointKey(`${s.name}-${index}`)
                         onHoverIndexChange?.(index)
                         onHoverPointChange?.({ pointIndex: index, seriesIndex, seriesName: s.name })
                       })()
@@ -197,12 +209,14 @@ export function MetricLineChart({
                           color: s.color,
                           transitionIndex: index,
                         })
+                        setHoveredPointKey(`${s.name}-${index}`)
                         onHoverIndexChange?.(index)
                         onHoverPointChange?.({ pointIndex: index, seriesIndex, seriesName: s.name })
                       })()
                     }
                     onMouseLeave={() => {
                       setHovered(null)
+                      setHoveredPointKey(null)
                       onHoverIndexChange?.(null)
                       onHoverPointChange?.(null)
                     }}
