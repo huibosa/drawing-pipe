@@ -22,11 +22,12 @@ export async function fetchTemplates(): Promise<Record<string, Profile["pipes"]>
   return data.templates
 }
 
-export async function analyzeProfile(profile: Profile): Promise<AnalyzeResponse> {
+export async function analyzeProfile(profile: Profile, signal?: AbortSignal): Promise<AnalyzeResponse> {
   const response = await fetch(`${API_BASE}/api/analyze`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(profile),
+    signal,
   })
   if (!response.ok) {
     const message = await response.text()

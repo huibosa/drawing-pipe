@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { MetricLineChart } from "../features/metrics/MetricLineChart"
 import { TransitionCard } from "../features/transitions/TransitionCard"
 import { analyzeProfile, fetchTemplates } from "../shared/api/client"
@@ -488,6 +488,7 @@ function App(): JSX.Element {
   const [templateName, setTemplateName] = useState<string>("")
   const [pipes, setPipes] = useState<Pipe[]>([])
   const [metrics, setMetrics] = useState<AnalyzeResponse | null>(null)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string>("")
   const [showMarkers, setShowMarkers] = useState(true)
   const [enableTransitionMarkerDrag, setEnableTransitionMarkerDrag] = useState(true)
@@ -509,6 +510,11 @@ function App(): JSX.Element {
       return {}
     }
   })
+  const analyzeTimerRef = useRef<number | null>(null)
+  const analyzeAbortRef = useRef<AbortController | null>(null)
+  const analyzeRequestSeqRef = useRef(0)
+  const pipesRef = useRef<Pipe[]>([])
+  const draggingMarkerRef = useRef(false)
 
   useEffect(() => {
     window.localStorage.setItem(LOCALE_STORAGE_KEY, locale)
@@ -517,6 +523,62 @@ function App(): JSX.Element {
   useEffect(() => {
     window.localStorage.setItem(INPUT_LOCKS_STORAGE_KEY, JSON.stringify(inputLocks))
   }, [inputLocks])
+
+  const executeAnalyze = (targetPipes: Pipe[]) => {
+    if (targetPipes.length === 0) {
+      analyzeAbortRef.current?.abort()
+      setMetrics(null)
+      setIsAnalyzing(false)
+      return
+    }
+
+    analyzeAbortRef.current?.abort()
+    const controller = new AbortController()
+    analyzeAbortRef.current = controller
+    const requestId = ++analyzeRequestSeqRef.current
+    setIsAnalyzing(true)
+
+    analyzeProfile({ version: 1, pipes: targetPipes }, controller.signal)
+      .then((result) => {
+        if (requestId !== analyzeRequestSeqRef.current) {
+          return
+        }
+        setMetrics(result)
+        setError("")
+      })
+      .catch((err: unknown) => {
+        if (controller.signal.aborted) {
+          return
+        }
+        if (requestId !== analyzeRequestSeqRef.current) {
+          return
+        }
+        setError(err instanceof Error ? err.message : String(err))
+      })
+      .finally(() => {
+        if (requestId !== analyzeRequestSeqRef.current) {
+          return
+        }
+        setIsAnalyzing(false)
+      })
+  }
+
+  const scheduleAnalyze = (targetPipes: Pipe[], immediate = false) => {
+    if (analyzeTimerRef.current !== null) {
+      window.clearTimeout(analyzeTimerRef.current)
+      analyzeTimerRef.current = null
+    }
+
+    if (immediate) {
+      executeAnalyze(targetPipes)
+      return
+    }
+
+    analyzeTimerRef.current = window.setTimeout(() => {
+      analyzeTimerRef.current = null
+      executeAnalyze(targetPipes)
+    }, 160)
+  }
 
   const isInputLocked = (pipeIndex: number, shapeKey: ShapeKey, target: LockTarget, axis: LockAxis): boolean =>
     Boolean(inputLocks[lockKey(pipeIndex, shapeKey, target, axis)])
@@ -639,20 +701,29 @@ function App(): JSX.Element {
   }, [])
 
   useEffect(() => {
+    pipesRef.current = pipes
     if (pipes.length === 0) {
+      if (analyzeTimerRef.current !== null) {
+        window.clearTimeout(analyzeTimerRef.current)
+        analyzeTimerRef.current = null
+      }
+      analyzeAbortRef.current?.abort()
       setMetrics(null)
+      setIsAnalyzing(false)
       return
     }
-
-    analyzeProfile({ version: 1, pipes })
-      .then((result) => {
-        setMetrics(result)
-        setError("")
-      })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : String(err))
-      })
+    scheduleAnalyze(pipes)
   }, [pipes])
+
+  useEffect(
+    () => () => {
+      if (analyzeTimerRef.current !== null) {
+        window.clearTimeout(analyzeTimerRef.current)
+      }
+      analyzeAbortRef.current?.abort()
+    },
+    []
+  )
 
   useEffect(() => {
     setViewBounds(computeBounds(pipes, padding))
@@ -789,6 +860,16 @@ function App(): JSX.Element {
         }
         onCardMouseEnter={() => setHoveredTransitionCardIndex(index)}
         onCardMouseLeave={() => setHoveredTransitionCardIndex(null)}
+        onMarkerDragStart={() => {
+          draggingMarkerRef.current = true
+        }}
+        onMarkerDragEnd={() => {
+          if (!draggingMarkerRef.current) {
+            return
+          }
+          draggingMarkerRef.current = false
+          scheduleAnalyze(pipesRef.current, true)
+        }}
         showExpandButton={showExpandButton}
         onExpand={() => setExpandedTransitionIndex(index)}
       />
@@ -841,6 +922,7 @@ function App(): JSX.Element {
             onHoverIndexChange={setHoveredTransitionIndex}
             emptyText={t(locale, "notEnoughData")}
           />
+          <p className={`analysis-status${isAnalyzing ? " visible" : ""}`}>{t(locale, "analyzing")}</p>
         </section>
 
         <label className="field-label" htmlFor="template-select">

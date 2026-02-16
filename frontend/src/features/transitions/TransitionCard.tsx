@@ -42,6 +42,8 @@ type TransitionCardProps = {
   hoveredThicknessMarkerIndex?: number | null
   onCardMouseEnter?: () => void
   onCardMouseLeave?: () => void
+  onMarkerDragStart?: () => void
+  onMarkerDragEnd?: () => void
   onExpand?: () => void
   showExpandButton?: boolean
 }
@@ -343,6 +345,8 @@ export function TransitionCard({
   hoveredThicknessMarkerIndex = null,
   onCardMouseEnter,
   onCardMouseLeave,
+  onMarkerDragStart,
+  onMarkerDragEnd,
   onExpand,
   showExpandButton = false,
 }: TransitionCardProps): JSX.Element {
@@ -504,6 +508,7 @@ export function TransitionCard({
       shapeKey: marker.shapeKey,
       markerIndex: marker.markerIndex,
     })
+    onMarkerDragStart?.()
   }
 
   return (
@@ -547,6 +552,7 @@ export function TransitionCard({
           if (draggingPointerId.current !== null) {
             svgRef.current?.releasePointerCapture(draggingPointerId.current)
             draggingPointerId.current = null
+            onMarkerDragEnd?.()
           }
           setActiveMarker(null)
         }}
@@ -554,6 +560,7 @@ export function TransitionCard({
           if (draggingPointerId.current !== null) {
             svgRef.current?.releasePointerCapture(draggingPointerId.current)
             draggingPointerId.current = null
+            onMarkerDragEnd?.()
           }
           setActiveMarker(null)
         }}

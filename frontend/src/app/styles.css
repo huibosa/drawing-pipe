@@ -302,6 +302,24 @@ select:focus-visible {
   margin-top: 16px;
 }
 
+.analysis-status {
+  margin: 0;
+  min-height: 18px;
+  font-size: var(--fs-small);
+  color: #35506f;
+  font-weight: 600;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-2px);
+  transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+}
+
+.analysis-status.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
 .metric-card {
   border: 1px solid var(--border-soft);
   border-radius: 10px;
