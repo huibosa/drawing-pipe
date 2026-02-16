@@ -1,106 +1,136 @@
 # Drawing Pipe Process Explorer
 
-An interactive geometric library and web app for calculating pipe properties (area, eccentricity, vertex distances, thickness) through a manufacturing process.
+Interactive pipe-shape process explorer with a FastAPI backend and React frontend.
+
+It supports parametric editing of consecutive pipe sections, transition visualization,
+and process metrics (area reduction, eccentricity, thickness reduction).
 
 ## Features
 
-- **Shape Support**: Circle, Rect, Ellipse, and CubicSpline shapes
-- **Process Analysis**: Calculate area reductions, eccentricity differences, and thickness reductions between consecutive pipes
-- **Interactive Visualization**: View transitions between pipe shapes with real-time metrics
-- **Template System**: Pre-built process templates (e.g., PROCESS, FINISH_3, FINISH_6, FINISH_8)
-- **Live Editing**: Modify pipe parameters with debounced auto-apply
+- Shape support: `Circle`, `Rect`, `CubicSplineShape`
+- Pipe types: `CircleCircle`, `RectRect`, `SplineSpline`
+- Interactive transition cards with marker drag, axis locks, and fullscreen modal
+- Live metric charts with hover linkage to transition markers
+- Template-based workflow (`PROCESS`, `FINISH_3`, `FINISH_6`, `FINISH_8`)
 
-## Screenshots
+## Screenshot
 
 ![Drawing Pipe Process Explorer](images/screenshot.png)
 
-## Installation
+## Tech Stack
 
-```bash
-# Sync dependencies
-uv sync
-```
+- Backend: FastAPI + Pydantic
+- Frontend: React + Vite + TypeScript
+- Python tooling: `uv`, `ruff`, `pytest` (when tests exist)
+- Frontend tooling: `bun`
 
-## Usage
+## Project Layout
 
-Run backend:
-
-```bash
-ALLOWED_ORIGINS="http://localhost:5173,http://127.0.0.1:5173" uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-Run frontend:
-
-```bash
-cd frontend
-bun install
-# Dev server proxies /api -> http://127.0.0.1:8000
-# Leave VITE_API_BASE_URL unset for local/LAN development
-bun run dev
-```
-
-## Fullstack App
-
-The app uses a FastAPI backend and React frontend for interactive drag-to-edit.
-
-- Backend entrypoint: `backend/main.py`
-- Frontend app: `frontend/`
-
-Run backend:
-
-```bash
-uv run uvicorn backend.main:app --reload
-```
-
-Run frontend:
-
-```bash
-cd frontend
-bun install
-bun run dev
-```
-
-## Project Structure
-
-```
+```text
 drawing_pipe/
-├── backend/             # FastAPI backend
-├── frontend/            # React frontend
+├── backend/                     # Runtime entrypoint (uvicorn target)
+├── frontend/                    # React/Vite app
 ├── src/drawing_pipe/
-│   ├── api/             # FastAPI app/domain/schemas
-│   └── core/            # Shape, pipe, process domain models
-└── images/              # Screenshots and assets
+│   ├── api/                     # FastAPI app, schemas, domain conversion
+│   └── core/                    # Geometry/domain logic
+├── images/
+└── AGENTS.md
 ```
 
-## Pipe Types
+## Prerequisites
 
-| Type | Outer Shape | Inner Shape | Description |
-|------|-------------|-------------|-------------|
-| `CircleCircle` | Circle | Circle | Circular pipe cross-section |
-| `RectRect` | Rect | Rect | Rectangular pipe with filleted corners |
-| `SplineSpline` | CubicSpline | CubicSpline | Complex spline-based profile |
+- Python 3.13+
+- `uv`
+- `bun`
 
-## API Reference
+## Setup
 
-### Shapes (`src/drawing_pipe/core/shapes.py`)
+```bash
+# Install/sync Python dependencies
+uv sync
 
-- `Circle`: Defined by `origin` (x, y) and `diameter`
-- `Rect`: Defined by `origin`, `length`, `width`, and `fillet_radius`
-- `CubicSplineShape`: Defined by `origin` and control points `v1`, `v2`, `v3`
+# Install frontend dependencies
+cd frontend && bun install
+```
 
-### Pipes (`src/drawing_pipe/core/pipes.py`)
+## Run (Development)
 
-All pipe types support:
-- `area`: Cross-sectional area (outer - inner)
-- `eccentricity`: Distance between outer and inner origins
-- `thickness`: Array of 5 thickness values at key vertices
+Backend:
 
-### Process Analysis (`src/drawing_pipe/core/process.py`)
+```bash
+ALLOWED_ORIGINS="http://localhost:5173,http://127.0.0.1:5173,http://192.168.2.160:5173" \
+uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
-`ProcessAnalysis` provides:
-- `area_reductions`: Percentage area reduction between consecutive pipes
-- `eccentricity_diffs`: Change in eccentricity between consecutive pipes
-- `thickness_reductions`: Thickness reduction ratios between consecutive pipes
+Frontend:
+
+```bash
+cd frontend
+# Vite proxies /api -> http://127.0.0.1:8000 (configured in vite.config.ts)
+bun run dev
+```
+
+Notes:
+
+- For local/LAN dev, leave `VITE_API_BASE_URL` unset to use Vite proxy.
+- Use `.envrc.example` as a template if you use `direnv`.
+
+## Build / Lint / Validate
+
+Python/backend:
+
+```bash
+ruff check .
+ruff format .
+uv run python -m py_compile backend/main.py src/drawing_pipe/api/app.py src/drawing_pipe/api/domain.py
+```
+
+Frontend:
+
+```bash
+cd frontend && bun run build
+```
+
+## Tests
+
+Current repository state: no committed `tests/` directory yet.
+
+When tests are added, recommended commands:
+
+```bash
+# Run all tests
+uv run pytest -q
+
+# Run one file
+uv run pytest tests/test_process.py -q
+
+# Run one test function
+uv run pytest tests/test_process.py::test_area_reduction -q
+
+# Run by expression
+uv run pytest tests/test_process.py -k "circle and reduction" -q
+```
+
+## API Endpoints
+
+- `GET /health`
+- `GET /api/templates`
+- `POST /api/analyze`
+
+## Domain Notes
+
+- `src/drawing_pipe/core/shapes.py`: `Circle`, `Rect`, `CubicSplineShape`
+- `src/drawing_pipe/core/pipes.py`: pipe types and derived properties
+- `src/drawing_pipe/core/process.py`: `ProcessAnalysis`
+- Metrics payload fields:
+  - `area_reductions`
+  - `eccentricity_diffs`
+  - `thickness_reductions`
+
+## Agent Guidance
+
+If you are running an agentic coding workflow, use `AGENTS.md` for repository-
+specific instructions, style expectations, and command checklist.
 
 ## License
 
