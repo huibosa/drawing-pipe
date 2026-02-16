@@ -498,6 +498,7 @@ function App(): JSX.Element {
   const [hoveredTransitionIndex, setHoveredTransitionIndex] = useState<number | null>(null)
   const [hoveredPipeIndex, setHoveredPipeIndex] = useState<number | null>(null)
   const [hoveredTransitionCardIndex, setHoveredTransitionCardIndex] = useState<number | null>(null)
+  const [expandedTransitionIndex, setExpandedTransitionIndex] = useState<number | null>(null)
   const [hoveredPointInput, setHoveredPointInput] = useState<HoveredPointInput | null>(null)
   const [hoveredThicknessPoint, setHoveredThicknessPoint] = useState<HoveredThicknessPoint | null>(null)
   const [inputLocks, setInputLocks] = useState<InputLockMap>(() => {
@@ -657,6 +658,36 @@ function App(): JSX.Element {
     setViewBounds(computeBounds(pipes, padding))
   }, [padding])
 
+  useEffect(() => {
+    if (expandedTransitionIndex === null) {
+      return
+    }
+    if (expandedTransitionIndex < 0 || expandedTransitionIndex >= pipes.length - 1) {
+      setExpandedTransitionIndex(null)
+    }
+  }, [expandedTransitionIndex, pipes])
+
+  useEffect(() => {
+    if (expandedTransitionIndex === null) {
+      return
+    }
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setExpandedTransitionIndex(null)
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => {
+      window.removeEventListener("keydown", onKeyDown)
+      document.body.style.overflow = previousOverflow
+    }
+  }, [expandedTransitionIndex])
+
   const updatePipe = (pipeIdx: number, nextPipe: Pipe) => {
     setPipes((prev) => {
       const updated = [...prev]
@@ -699,6 +730,69 @@ function App(): JSX.Element {
     CircleCircle: t(locale, "pipeTypeCircleCircle"),
     RectRect: t(locale, "pipeTypeRectRect"),
     SplineSpline: t(locale, "pipeTypeSplineSpline"),
+  }
+
+  const renderTransitionCard = (index: number, showExpandButton: boolean): JSX.Element | null => {
+    const leftPipe = pipes[index]
+    const rightPipe = pipes[index + 1]
+    if (!leftPipe || !rightPipe) {
+      return null
+    }
+
+    return (
+      <TransitionCard
+        key={`transition-${index}${showExpandButton ? "-row" : "-modal"}`}
+        leftPipe={leftPipe}
+        rightPipe={rightPipe}
+        onLeftPipeChange={(nextPipe) => updatePipe(index, nextPipe)}
+        onRightPipeChange={(nextPipe) => updatePipe(index + 1, nextPipe)}
+        bounds={viewBounds}
+        showMarkers={showMarkers}
+        markersDraggable={enableTransitionMarkerDrag}
+        canDragMarker={(marker) => {
+          const axes = transitionMarkerDragAxes(index, marker)
+          return axes.allowX || axes.allowY
+        }}
+        markerDragAxes={(marker) => transitionMarkerDragAxes(index, marker)}
+        centerDragAxes={(side) => transitionCenterShapeDragAxes(index, side)}
+        markerSize={markerSize}
+        plotLineWidth={plotLineWidth}
+        title={t(locale, "transitionTitle", { from: index + 1, to: index + 2 })}
+        areaReduction={metrics?.area_reductions[index] ?? null}
+        eccentricityDiff={metrics?.eccentricity_diffs[index] ?? null}
+        thicknessReduction={metrics?.thickness_reductions[index] ?? null}
+        highlighted={
+          hoveredTransitionIndex === index ||
+          hoveredTransitionCardIndex === index ||
+          hoveredPipeIndex === index ||
+          hoveredPipeIndex === index + 1
+        }
+        emphasizedSide={
+          hoveredPipeIndex === index
+            ? "left"
+            : hoveredPipeIndex === index + 1
+              ? "right"
+              : null
+        }
+        hoveredInputTarget={
+          hoveredPointInput &&
+          (hoveredPointInput.pipeIndex === index || hoveredPointInput.pipeIndex === index + 1)
+            ? {
+                side: hoveredPointInput.pipeIndex === index ? "left" : "right",
+                shapeKey: hoveredPointInput.shapeKey,
+                pointKey: hoveredPointInput.pointKey,
+              }
+            : null
+        }
+        hoveredThicknessMarkerIndex={
+          hoveredThicknessPoint?.transitionIndex === index ? hoveredThicknessPoint.markerIndex : null
+        }
+        onCardMouseEnter={() => setHoveredTransitionCardIndex(index)}
+        onCardMouseLeave={() => setHoveredTransitionCardIndex(null)}
+        showExpandButton={showExpandButton}
+        onExpand={() => setExpandedTransitionIndex(index)}
+      />
+    )
   }
 
   return (
@@ -861,60 +955,7 @@ function App(): JSX.Element {
       <main className="main-area">
         {pipes.length > 1 ? (
           <section className="transition-row">
-            {pipes.slice(0, -1).map((leftPipe, index) => (
-              <TransitionCard
-                key={`transition-${index}`}
-                leftPipe={leftPipe}
-                rightPipe={pipes[index + 1]}
-                onLeftPipeChange={(nextPipe) => updatePipe(index, nextPipe)}
-                onRightPipeChange={(nextPipe) => updatePipe(index + 1, nextPipe)}
-                bounds={viewBounds}
-                showMarkers={showMarkers}
-                markersDraggable={enableTransitionMarkerDrag}
-                canDragMarker={(marker) => {
-                  const axes = transitionMarkerDragAxes(index, marker)
-                  return axes.allowX || axes.allowY
-                }}
-                markerDragAxes={(marker) => transitionMarkerDragAxes(index, marker)}
-                centerDragAxes={(side) => transitionCenterShapeDragAxes(index, side)}
-                markerSize={markerSize}
-                plotLineWidth={plotLineWidth}
-                title={t(locale, "transitionTitle", { from: index + 1, to: index + 2 })}
-                areaReduction={metrics?.area_reductions[index] ?? null}
-                eccentricityDiff={metrics?.eccentricity_diffs[index] ?? null}
-                thicknessReduction={metrics?.thickness_reductions[index] ?? null}
-                highlighted={
-                  hoveredTransitionIndex === index ||
-                  hoveredTransitionCardIndex === index ||
-                  hoveredPipeIndex === index ||
-                  hoveredPipeIndex === index + 1
-                }
-                emphasizedSide={
-                  hoveredPipeIndex === index
-                    ? "left"
-                    : hoveredPipeIndex === index + 1
-                      ? "right"
-                      : null
-                }
-                hoveredInputTarget={
-                  hoveredPointInput &&
-                  (hoveredPointInput.pipeIndex === index || hoveredPointInput.pipeIndex === index + 1)
-                    ? {
-                        side: hoveredPointInput.pipeIndex === index ? "left" : "right",
-                        shapeKey: hoveredPointInput.shapeKey,
-                        pointKey: hoveredPointInput.pointKey,
-                      }
-                    : null
-                }
-                hoveredThicknessMarkerIndex={
-                  hoveredThicknessPoint?.transitionIndex === index
-                    ? hoveredThicknessPoint.markerIndex
-                    : null
-                }
-                onCardMouseEnter={() => setHoveredTransitionCardIndex(index)}
-                onCardMouseLeave={() => setHoveredTransitionCardIndex(null)}
-              />
-            ))}
+            {pipes.slice(0, -1).map((_, index) => renderTransitionCard(index, true))}
           </section>
         ) : null}
 
@@ -1053,6 +1094,29 @@ function App(): JSX.Element {
             )
           })}
         </section>
+
+        {expandedTransitionIndex !== null ? (
+          <div
+            className="transition-modal-backdrop"
+            onClick={() => setExpandedTransitionIndex(null)}
+            role="presentation"
+          >
+            <div className="transition-modal-panel" onClick={(event) => event.stopPropagation()} role="dialog">
+              <div className="transition-modal-header">
+                <button
+                  type="button"
+                  className="transition-modal-close"
+                  onClick={() => setExpandedTransitionIndex(null)}
+                  aria-label="Close expanded transition plot"
+                  title="Close"
+                >
+                  ✕
+                </button>
+              </div>
+              {renderTransitionCard(expandedTransitionIndex, false)}
+            </div>
+          </div>
+        ) : null}
       </main>
     </div>
   )

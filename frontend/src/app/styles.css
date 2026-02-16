@@ -151,6 +151,7 @@ body {
 }
 
 .main-area {
+  position: relative;
   padding: 20px;
   display: grid;
   gap: 10px;
@@ -186,6 +187,37 @@ body {
   font-size: var(--fs-h3);
   line-height: 1.3;
   font-weight: 650;
+}
+
+.transition-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.transition-card-header h3 {
+  margin: 4px 0 10px;
+}
+
+.transition-expand-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #1d4ed8;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  padding: 0;
+}
+
+.transition-expand-btn:hover {
+  background: #1d4ed8;
 }
 
 .transition-svg {
@@ -415,6 +447,52 @@ body {
 .error {
   color: #9f2424;
   font-weight: 600;
+}
+
+.transition-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 14, 22, 0.68);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  padding: 18px;
+}
+
+.transition-modal-panel {
+  width: min(92vw, 1120px);
+  max-height: 92vh;
+  overflow: auto;
+  background: #f4f7fb;
+  border: 1px solid #c5d2e3;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.transition-modal-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.transition-modal-close {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #c7d2e2;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f2937;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  padding: 0;
+}
+
+.transition-modal-close:hover {
+  background: #f8fafc;
 }
 
 @media (max-width: 960px) {

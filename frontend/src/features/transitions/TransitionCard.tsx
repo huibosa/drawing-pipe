@@ -42,6 +42,8 @@ type TransitionCardProps = {
   hoveredThicknessMarkerIndex?: number | null
   onCardMouseEnter?: () => void
   onCardMouseLeave?: () => void
+  onExpand?: () => void
+  showExpandButton?: boolean
 }
 
 const SIZE = 260
@@ -341,6 +343,8 @@ export function TransitionCard({
   hoveredThicknessMarkerIndex = null,
   onCardMouseEnter,
   onCardMouseLeave,
+  onExpand,
+  showExpandButton = false,
 }: TransitionCardProps): JSX.Element {
   const svgRef = useRef<SVGSVGElement | null>(null)
   const draggingPointerId = useRef<number | null>(null)
@@ -508,7 +512,20 @@ export function TransitionCard({
       onMouseEnter={onCardMouseEnter}
       onMouseLeave={onCardMouseLeave}
     >
-      <h3>{title}</h3>
+      <div className="transition-card-header">
+        <h3>{title}</h3>
+        {showExpandButton ? (
+          <button
+            type="button"
+            className="transition-expand-btn"
+            onClick={onExpand}
+            aria-label="Expand transition plot"
+            title="Expand transition plot"
+          >
+            ⛶
+          </button>
+        ) : null}
+      </div>
       <svg
         ref={svgRef}
         width={SIZE}
