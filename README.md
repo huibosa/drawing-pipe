@@ -34,8 +34,8 @@ Run frontend:
 ```bash
 cd frontend
 bun install
-# Optional for remote access; defaults to current hostname:8000
-# export VITE_API_BASE_URL="http://<server-ip>:8000"
+# Dev server proxies /api -> http://127.0.0.1:8000
+# Leave VITE_API_BASE_URL unset for local/LAN development
 bun run dev
 ```
 
