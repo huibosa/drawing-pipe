@@ -954,12 +954,21 @@ function App(): JSX.Element {
 
       <main className="main-area">
         {pipes.length > 1 ? (
-          <section className="transition-row">
-            {pipes.slice(0, -1).map((_, index) => renderTransitionCard(index, true))}
+          <section className="main-section">
+            <div className="main-section-header">
+              <h2 className="main-section-title">{t(locale, "transitionsSection")}</h2>
+            </div>
+            <div className="transition-row">
+              {pipes.slice(0, -1).map((_, index) => renderTransitionCard(index, true))}
+            </div>
           </section>
         ) : null}
 
-        <section className="pipe-row">
+        <section className="main-section">
+          <div className="main-section-header">
+            <h2 className="main-section-title">{t(locale, "pipeSettingsSection")}</h2>
+          </div>
+          <div className="pipe-row">
           {pipes.map((pipe, index) => {
             const linkedToHoveredTransition =
               hoveredTransitionCardIndex === index || hoveredTransitionCardIndex === index - 1
@@ -1093,6 +1102,7 @@ function App(): JSX.Element {
             </article>
             )
           })}
+          </div>
         </section>
 
         {expandedTransitionIndex !== null ? (
@@ -1103,6 +1113,7 @@ function App(): JSX.Element {
           >
             <div className="transition-modal-panel" onClick={(event) => event.stopPropagation()} role="dialog">
               <div className="transition-modal-header">
+                <span className="transition-modal-hint">{t(locale, "escToClose")}</span>
                 <button
                   type="button"
                   className="transition-modal-close"

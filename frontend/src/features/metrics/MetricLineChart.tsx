@@ -139,6 +139,19 @@ export function MetricLineChart({
           )
         })}
 
+        {hovered ? (
+          <line
+            x1={x(hovered.transitionIndex)}
+            y1={PAD_TOP}
+            x2={x(hovered.transitionIndex)}
+            y2={HEIGHT - PAD_BOTTOM}
+            stroke={hovered.color}
+            strokeWidth={1}
+            strokeDasharray="4 3"
+            strokeOpacity={0.45}
+          />
+        ) : null}
+
         {yTicks.map((tickValue) => {
           const py = y(tickValue)
           return (
