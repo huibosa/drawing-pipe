@@ -1,67 +1,55 @@
-# AGENTS.md - Drawing Pipe Repository Guide
+# AGENTS.md - Drawing Pipe Agent Guide
 
-This file is for coding agents operating in this repository.
+Repository guidance for coding agents working in this project.
 Follow these rules unless the user explicitly overrides them.
 
-## Project Scope
+## Project Summary
 
-- Python geometry/process domain (`src/drawing_pipe/core/`).
-- FastAPI backend (`backend/`) + React/Vite frontend (`frontend/`).
+- Stack: FastAPI (Python) + React/Vite (TypeScript).
+- Python package root: `src/drawing_pipe/`.
+- Backend entrypoint: `backend/main.py`.
+- Frontend app: `frontend/`.
+- Tooling: `uv` (Python), `bun` (frontend).
 
-## Quick Start for Agents
+## Cursor / Copilot Rule Files
+
+Checked:
+
+- `.cursor/rules/` -> not present
+- `.cursorrules` -> not present
+- `.github/copilot-instructions.md` -> not present
+
+If these files are added later, treat them as higher-priority repo rules.
+
+## Quick Start
 
 ```bash
-# 1) Sync Python dependencies
+# Sync Python deps
 uv sync
 
-# 2) Run backend API
-uv run uvicorn backend.main:app --reload
+# Run backend
+uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 
-# 3) Run frontend dev server
+# Run frontend
 cd frontend && bun install && bun run dev
-
-# 4) Validate changes before finishing
-ruff check . && uv run python -m py_compile backend/main.py src/drawing_pipe/api/domain.py && cd frontend && bun run build
 ```
-
-## Hard Rules for This Repo
-
-- Use `uv` for Python commands.
-- Use `bun` for frontend commands.
-- Do **not** create `.venv`.
-- Do **not** install with `pip` in this repo.
-- Keep code/docs/commits in English.
-
-## Rule File Discovery
-
-- Cursor rules: none found (`.cursor/rules/` and `.cursorrules` absent).
-- Copilot rules: none found (`.github/copilot-instructions.md` absent).
-- If those files appear later, treat them as higher-priority instructions.
-
-## Important Paths
-
-- `backend/main.py`: FastAPI app entrypoint.
-- `src/drawing_pipe/api/app.py`: FastAPI app construction.
-- `src/drawing_pipe/api/domain.py`: payload/domain conversion.
-- `src/drawing_pipe/api/schemas.py`: API models.
-- `src/drawing_pipe/core/`: shape/pipe/process core domain.
-- `frontend/src/app/App.tsx`: main frontend state/UI.
-- `frontend/src/features/transitions/TransitionCard.tsx`: transition plot + drag markers.
-- `frontend/src/shared/lib/geometry.ts`: shape vertices/projection helpers.
 
 ## Build / Lint / Test Commands
 
-### Python and Backend
+### Python / Backend
 
 ```bash
-# Sync Python dependencies
-uv sync
+# Lint
+ruff check .
 
-# Run FastAPI backend
-uv run uvicorn backend.main:app --reload
+# Lint with fixes
+ruff check --fix .
 
-# Syntax check selected modules
-uv run python -m py_compile backend/main.py src/drawing_pipe/api/domain.py
+# Format
+ruff format .
+
+# Syntax compile check
+uv run python -m py_compile backend/main.py src/drawing_pipe/api/app.py src/drawing_pipe/api/domain.py
 ```
 
 ### Frontend
@@ -70,37 +58,21 @@ uv run python -m py_compile backend/main.py src/drawing_pipe/api/domain.py
 # Install deps
 cd frontend && bun install
 
-# Dev server
+# Dev
 cd frontend && bun run dev
 
-# Production build (includes TS build)
+# Typecheck + production build
 cd frontend && bun run build
 
 # Preview
 cd frontend && bun run preview
 ```
 
-### Lint / Format
-
-```bash
-# Python lint
-ruff check .
-
-# Python lint with fixes
-ruff check --fix .
-
-# Python format
-ruff format .
-
-# Frontend type + bundle validation
-cd frontend && bun run build
-```
-
 ### Tests
 
-Current repo state: no committed `tests/` directory yet.
+Current state: no committed `tests/` directory yet.
 
-When tests exist, use `pytest` via `uv`:
+When Python tests exist:
 
 ```bash
 # All tests
@@ -112,60 +84,87 @@ uv run pytest tests/test_process.py -q
 # Single test function
 uv run pytest tests/test_process.py::test_area_reduction -q
 
-# Single test by expression
+# By expression
 uv run pytest tests/test_process.py -k "circle and reduction" -q
 ```
 
-If frontend tests are added later, use `bun run test` plus file/name filters.
+If frontend tests are added later (Vitest/Jest style):
 
-## Python Style
+```bash
+cd frontend && bun run test
+cd frontend && bun run test -- path/to/file.test.ts
+cd frontend && bun run test -- -t "name fragment"
+```
 
-- Prefer explicit type hints for public functions/methods.
-- Keep domain logic pure and deterministic.
-- Use Pydantic validation at model/API boundaries.
-- Avoid silent coercion or silent failure paths.
-- Keep geometry naming clear (`origin`, `diameter`, `length`, `width`, `v1/v2/v3`).
+## Important Paths
 
-### Python Imports
+- `backend/main.py` - runtime entrypoint.
+- `src/drawing_pipe/api/app.py` - FastAPI app setup/routes.
+- `src/drawing_pipe/api/domain.py` - payload/domain conversion.
+- `src/drawing_pipe/api/schemas.py` - API models.
+- `src/drawing_pipe/core/` - geometry/process domain logic.
+- `frontend/src/app/App.tsx` - app state orchestration.
+- `frontend/src/features/transitions/TransitionCard.tsx` - transition plot + drag.
+- `frontend/src/features/metrics/MetricLineChart.tsx` - metric charts.
+- `frontend/src/shared/lib/geometry.ts` - projection/vertex helpers.
 
-- Order: stdlib -> third-party -> local imports.
-- Keep import groups sorted (ruff-compatible).
-- Follow existing local absolute import style where used.
+## Code Style - Python
 
-## TypeScript / React Style
+- Use explicit type hints for public functions.
+- Keep core logic deterministic and side-effect free.
+- Keep API validation at schema boundaries.
+- Prefer absolute imports under `drawing_pipe.*`.
+- Import order: stdlib -> third-party -> local.
+- Avoid broad exception swallowing.
+- Return actionable errors from API endpoints.
 
-- Keep strict typing; avoid `any`.
-- Use discriminated unions for shape/pipe variants.
-- Prefer pure helper functions for math/geometry transformations.
-- Keep component props typed and minimal.
-- Keep drag behavior deterministic and frame-safe.
+## Code Style - TypeScript / React
 
-## Error Handling
+- Keep strict typing; avoid `any` unless unavoidable.
+- Use discriminated unions for shape variants.
+- Keep components lean; move math logic to shared helpers.
+- Avoid direct state mutation.
+- Prefer explicit prop names and typed callbacks.
+- Keep drag/hover logic deterministic and race-safe.
 
-- Backend should return clear, actionable errors for invalid payloads.
-- Frontend should surface API errors in UI, not console-only.
-- Validate user-edited values close to update boundaries.
+## Naming & Formatting
 
-## UI Behavior Conventions
+- Domain terms should stay consistent (`origin`, `diameter`, `v1/v2/v3`).
+- Use i18n keys for user-visible labels (`frontend/src/shared/i18n/i18n.ts`).
+- TS: `camelCase` for vars/functions, `PascalCase` for types/components.
+- Python: follow ruff/PEP8 defaults.
 
-- Preserve existing interaction constraints unless user asks to change:
-  - center `x` lock behavior,
-  - drag step snapping,
-  - debounce analysis behavior,
-  - marker visibility and style controls.
-- Keep transition plot equal-axis projection to avoid distortion.
+## Error Handling Expectations
+
+- Frontend must surface API errors in UI, not console-only.
+- Interactive API flows should support cancellation and latest-wins behavior.
+- Backend should reject invalid payloads with clear responses.
+- Do not silently ignore failed conversions/parsing.
+
+## Interaction / Performance Rules
+
+- Preserve lock semantics and marker drag constraints unless asked to change.
+- Preserve snap-step geometry behavior unless asked to change.
+- Keep metrics analysis request flow optimized for drag interactions.
+- Ensure transition fullscreen/modal keeps full interactivity.
+
+## Environment / Generated Files
+
+- Do not commit generated frontend output (`frontend/dist/`).
+- Do not commit local `.envrc`; use `.envrc.example`.
+- `src/*.egg-info/` is generated metadata and should remain ignored.
 
 ## Commit Guidelines
 
-- Use: `type(scope): subject`.
-- Subject: imperative, concise, no trailing period.
-- Common types: `feat`, `fix`, `refactor`, `style`, `test`, `docs`, `chore`.
+- Format: `type(scope): subject`.
+- Use imperative subject, concise, no trailing period.
+- Common types: `feat`, `fix`, `perf`, `refactor`, `style`, `docs`, `test`, `chore`.
 - Keep commits atomic and logically grouped.
 
 ## Agent Workflow Checklist
 
 1. Read relevant files before editing.
 2. Make minimal coherent changes.
-3. Run relevant checks (`ruff`, `py_compile`, `bun run build`).
-4. Do not commit generated outputs (`frontend/dist`, cache files).
-5. Summarize changed files and verification commands in final response.
+3. Run relevant checks before finishing.
+4. Verify staged files exclude generated artifacts.
+5. Summarize changed files + verification commands in the final response.
