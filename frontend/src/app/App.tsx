@@ -1031,21 +1031,16 @@ function App(): JSX.Element {
       <main className="main-area">
         {pipes.length > 1 ? (
           <section className="main-section">
-            <div className="main-section-header">
-              <h2 className="main-section-title">{t(locale, "transitionsSection")}</h2>
-            </div>
             <div className="transition-row">
               {pipes.slice(0, -1).map((_, index) => renderTransitionCard(index, true))}
             </div>
           </section>
         ) : null}
 
-        <section className="main-section">
-          <div className="main-section-header">
-            <h2 className="main-section-title">{t(locale, "pipeSettingsSection")}</h2>
-          </div>
-          <div className="pipe-row">
-          {pipes.map((pipe, index) => {
+        <div className="pipe-section-scroll">
+          <section className="main-section">
+            <div className="pipe-row">
+            {pipes.map((pipe, index) => {
             const linkedToHoveredTransition =
               hoveredTransitionCardIndex === index || hoveredTransitionCardIndex === index - 1
             const highlightedByHover = hoveredPipeIndex === index || linkedToHoveredTransition
@@ -1177,9 +1172,10 @@ function App(): JSX.Element {
               </div>
             </article>
             )
-          })}
-          </div>
-        </section>
+            })}
+            </div>
+          </section>
+        </div>
 
         {expandedTransitionIndex !== null ? (
           <div
