@@ -95,7 +95,7 @@ class CubicSplineShape(BaseModel):
             (self.v2[0] + ox, -self.v2[1] + oy),
             (ox, -self.v1[1] + oy),
             (-self.v2[0] + ox, -self.v2[1] + oy),
-            (-self.v3[0] + ox, oy),
+            (-self.v3[0] + ox, self.v3[1] + oy),
             (-self.v2[0] + ox, self.v2[1] + oy),
         )
 

@@ -81,7 +81,7 @@ function splineVertices(shape: SplineShape): [number, number][] {
     [v2x + ox, -v2y + oy],
     [0 + ox, -v1y + oy],
     [-v2x + ox, -v2y + oy],
-    [-v3x + ox, 0 + oy],
+    [-v3x + ox, v3y + oy],
     [-v2x + ox, v2y + oy],
   ]
 }
