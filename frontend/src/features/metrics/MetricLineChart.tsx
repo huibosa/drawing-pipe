@@ -25,7 +25,7 @@ const PAD_TOP = 12
 const PAD_BOTTOM = 26
 const MARKER_RADIUS = 2.8
 const MARKER_HOVER_RADIUS = 5.2
-const MARKER_HIT_RADIUS = 9
+const HOVER_THRESHOLD = 10
 
 type HoverPoint = {
   x: number
@@ -33,6 +33,9 @@ type HoverPoint = {
   label: string
   color: string
   transitionIndex: number
+  pointKey: string
+  seriesIndex: number
+  seriesName: string
 }
 
 function pathFromPoints(points: [number, number][]): string {
@@ -54,7 +57,7 @@ export function MetricLineChart({
   emptyText = "Not enough data",
 }: MetricLineChartProps): JSX.Element {
   const [hovered, setHovered] = useState<HoverPoint | null>(null)
-  const [hoveredPointKey, setHoveredPointKey] = useState<string | null>(null)
+  const hoveredPointKey = hovered?.pointKey ?? null
   const nonEmpty = series.filter((s) => s.values.length > 0)
   const maxPoints = nonEmpty.reduce((acc, s) => Math.max(acc, s.values.length), 0)
 
@@ -92,6 +95,94 @@ export function MetricLineChart({
     ? Math.min(Math.max(hovered.y - 30, PAD_TOP), HEIGHT - tooltipHeight - PAD_BOTTOM)
     : 0
 
+  const plotPoints = nonEmpty.flatMap((s, seriesIndex) =>
+    s.values.map((value, index) => {
+      const px = x(index)
+      const py = y(value)
+      return {
+        key: `${s.name}-${index}`,
+        x: px,
+        y: py,
+        label: formatValue(value),
+        color: s.color,
+        transitionIndex: index,
+        seriesIndex,
+        seriesName: s.name,
+      }
+    })
+  )
+
+  const updateHoverFromPointer = (clientX: number, clientY: number, element: SVGSVGElement) => {
+    const rect = element.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) {
+      return
+    }
+    const localX = ((clientX - rect.left) / rect.width) * WIDTH
+    const localY = ((clientY - rect.top) / rect.height) * HEIGHT
+
+    const thresholdSq = HOVER_THRESHOLD * HOVER_THRESHOLD
+    let nearest = -1
+    let nearestDistSq = Number.POSITIVE_INFINITY
+    let currentDistSq = Number.POSITIVE_INFINITY
+
+    for (let i = 0; i < plotPoints.length; i += 1) {
+      const point = plotPoints[i]
+      const dx = localX - point.x
+      const dy = localY - point.y
+      const distSq = dx * dx + dy * dy
+      if (point.key === hoveredPointKey) {
+        currentDistSq = distSq
+      }
+      if (distSq < nearestDistSq) {
+        nearestDistSq = distSq
+        nearest = i
+      }
+    }
+
+    if (nearest < 0 || nearestDistSq > thresholdSq) {
+      if (hovered !== null) {
+        setHovered(null)
+        onHoverIndexChange?.(null)
+        onHoverPointChange?.(null)
+      }
+      return
+    }
+
+    let selected = plotPoints[nearest]
+    if (hoveredPointKey !== null && currentDistSq <= thresholdSq && currentDistSq <= nearestDistSq * 1.25) {
+      const current = plotPoints.find((point) => point.key === hoveredPointKey)
+      if (current) {
+        selected = current
+      }
+    }
+
+    if (
+      hovered &&
+      hovered.pointKey === selected.key &&
+      hovered.transitionIndex === selected.transitionIndex &&
+      hovered.seriesIndex === selected.seriesIndex
+    ) {
+      return
+    }
+
+    setHovered({
+      x: selected.x,
+      y: selected.y,
+      label: selected.label,
+      color: selected.color,
+      transitionIndex: selected.transitionIndex,
+      pointKey: selected.key,
+      seriesIndex: selected.seriesIndex,
+      seriesName: selected.seriesName,
+    })
+    onHoverIndexChange?.(selected.transitionIndex)
+    onHoverPointChange?.({
+      pointIndex: selected.transitionIndex,
+      seriesIndex: selected.seriesIndex,
+      seriesName: selected.seriesName,
+    })
+  }
+
   return (
     <section className="metric-card">
       <h3>{title}</h3>
@@ -100,9 +191,9 @@ export function MetricLineChart({
         className="metric-svg"
         role="img"
         aria-label={title}
+        onMouseMove={(event) => updateHoverFromPointer(event.clientX, event.clientY, event.currentTarget)}
         onMouseLeave={() => {
           setHovered(null)
-          setHoveredPointKey(null)
           onHoverIndexChange?.(null)
           onHoverPointChange?.(null)
         }}
@@ -177,7 +268,7 @@ export function MetricLineChart({
           )
         })}
 
-        {nonEmpty.map((s, seriesIndex) => {
+        {nonEmpty.map((s) => {
           const points = s.values.map((v, i) => [x(i), y(v)] as [number, number])
           return (
             <g key={s.name}>
@@ -192,47 +283,6 @@ export function MetricLineChart({
                     stroke={s.color}
                     strokeWidth={hoveredPointKey === `${s.name}-${index}` ? 1.8 : 1}
                     style={{ transition: "r 120ms ease, stroke-width 120ms ease" }}
-                  />
-                  <circle
-                    cx={px}
-                    cy={py}
-                    r={MARKER_HIT_RADIUS}
-                    fill="transparent"
-                    style={{ cursor: "pointer" }}
-                    onMouseEnter={() =>
-                      (() => {
-                        setHovered({
-                          x: px,
-                          y: py,
-                          label: formatValue(s.values[index]),
-                          color: s.color,
-                          transitionIndex: index,
-                        })
-                        setHoveredPointKey(`${s.name}-${index}`)
-                        onHoverIndexChange?.(index)
-                        onHoverPointChange?.({ pointIndex: index, seriesIndex, seriesName: s.name })
-                      })()
-                    }
-                    onMouseMove={() =>
-                      (() => {
-                        setHovered({
-                          x: px,
-                          y: py,
-                          label: formatValue(s.values[index]),
-                          color: s.color,
-                          transitionIndex: index,
-                        })
-                        setHoveredPointKey(`${s.name}-${index}`)
-                        onHoverIndexChange?.(index)
-                        onHoverPointChange?.({ pointIndex: index, seriesIndex, seriesName: s.name })
-                      })()
-                    }
-                    onMouseLeave={() => {
-                      setHovered(null)
-                      setHoveredPointKey(null)
-                      onHoverIndexChange?.(null)
-                      onHoverPointChange?.(null)
-                    }}
                   />
                 </g>
               ))}

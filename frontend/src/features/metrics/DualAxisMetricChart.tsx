@@ -22,13 +22,14 @@ const PAD_TOP = 12
 const PAD_BOTTOM = 26
 const MARKER_RADIUS = 2.8
 const MARKER_HOVER_RADIUS = 5.2
-const MARKER_HIT_RADIUS = 9
+const HOVER_THRESHOLD = 10
 
 type HoverPoint = {
   index: number
   x: number
   y: number
   series: "left" | "right"
+  pointKey: string
 }
 
 function pathFromPoints(points: [number, number][]): string {
@@ -64,7 +65,7 @@ export function DualAxisMetricChart({
   emptyText = "Not enough data",
 }: DualAxisMetricChartProps): JSX.Element {
   const [hovered, setHovered] = useState<HoverPoint | null>(null)
-  const [hoveredPointKey, setHoveredPointKey] = useState<string | null>(null)
+  const hoveredPointKey = hovered?.pointKey ?? null
 
   const maxPoints = Math.max(leftValues.length, rightValues.length)
   if (maxPoints === 0) {
@@ -104,6 +105,85 @@ export function DualAxisMetricChart({
     ? Math.min(Math.max(hovered.y - 48, PAD_TOP), HEIGHT - tooltipHeight - PAD_BOTTOM)
     : 0
 
+  const plotPoints = [
+    ...leftPoints.map(([px, py], index) => ({
+      key: `left-${index}`,
+      index,
+      x: px,
+      y: py,
+      series: "left" as const,
+    })),
+    ...rightPoints.map(([px, py], index) => ({
+      key: `right-${index}`,
+      index,
+      x: px,
+      y: py,
+      series: "right" as const,
+    })),
+  ]
+
+  const updateHoverFromPointer = (clientX: number, clientY: number, element: SVGSVGElement) => {
+    const rect = element.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) {
+      return
+    }
+    const localX = ((clientX - rect.left) / rect.width) * WIDTH
+    const localY = ((clientY - rect.top) / rect.height) * HEIGHT
+
+    const thresholdSq = HOVER_THRESHOLD * HOVER_THRESHOLD
+    let nearest = -1
+    let nearestDistSq = Number.POSITIVE_INFINITY
+    let currentDistSq = Number.POSITIVE_INFINITY
+
+    for (let i = 0; i < plotPoints.length; i += 1) {
+      const point = plotPoints[i]
+      const dx = localX - point.x
+      const dy = localY - point.y
+      const distSq = dx * dx + dy * dy
+      if (point.key === hoveredPointKey) {
+        currentDistSq = distSq
+      }
+      if (distSq < nearestDistSq) {
+        nearestDistSq = distSq
+        nearest = i
+      }
+    }
+
+    if (nearest < 0 || nearestDistSq > thresholdSq) {
+      if (hovered !== null) {
+        setHovered(null)
+        onHoverIndexChange?.(null)
+      }
+      return
+    }
+
+    let selected = plotPoints[nearest]
+    if (hoveredPointKey !== null && currentDistSq <= thresholdSq && currentDistSq <= nearestDistSq * 1.25) {
+      const current = plotPoints.find((point) => point.key === hoveredPointKey)
+      if (current) {
+        selected = current
+      }
+    }
+
+    if (
+      hovered &&
+      hovered.pointKey === selected.key &&
+      hovered.index === selected.index &&
+      hovered.series === selected.series
+    ) {
+      return
+    }
+
+    setHovered({
+      index: selected.index,
+      x: selected.x,
+      y: selected.y,
+      series: selected.series,
+      pointKey: selected.key,
+    })
+    onHoverIndexChange?.(selected.index)
+  }
+
   return (
     <section className="metric-card">
       <h3>{title}</h3>
@@ -112,9 +192,9 @@ export function DualAxisMetricChart({
         className="metric-svg"
         role="img"
         aria-label={title}
+        onMouseMove={(event) => updateHoverFromPointer(event.clientX, event.clientY, event.currentTarget)}
         onMouseLeave={() => {
           setHovered(null)
-          setHoveredPointKey(null)
           onHoverIndexChange?.(null)
         }}
       >
@@ -190,28 +270,6 @@ export function DualAxisMetricChart({
                 strokeWidth={hoveredPointKey === key ? 1.8 : 1}
                 style={{ transition: "r 120ms ease, stroke-width 120ms ease" }}
               />
-              <circle
-                cx={px}
-                cy={py}
-                r={MARKER_HIT_RADIUS}
-                fill="transparent"
-                style={{ cursor: "pointer" }}
-                onMouseEnter={() => {
-                  setHovered({ index, x: px, y: py, series: "left" })
-                  setHoveredPointKey(key)
-                  onHoverIndexChange?.(index)
-                }}
-                onMouseMove={() => {
-                  setHovered({ index, x: px, y: py, series: "left" })
-                  setHoveredPointKey(key)
-                  onHoverIndexChange?.(index)
-                }}
-                onMouseLeave={() => {
-                  setHovered(null)
-                  setHoveredPointKey(null)
-                  onHoverIndexChange?.(null)
-                }}
-              />
             </g>
           )
         })}
@@ -228,28 +286,6 @@ export function DualAxisMetricChart({
                 stroke={rightColor}
                 strokeWidth={hoveredPointKey === key ? 1.8 : 1}
                 style={{ transition: "r 120ms ease, stroke-width 120ms ease" }}
-              />
-              <circle
-                cx={px}
-                cy={py}
-                r={MARKER_HIT_RADIUS}
-                fill="transparent"
-                style={{ cursor: "pointer" }}
-                onMouseEnter={() => {
-                  setHovered({ index, x: px, y: py, series: "right" })
-                  setHoveredPointKey(key)
-                  onHoverIndexChange?.(index)
-                }}
-                onMouseMove={() => {
-                  setHovered({ index, x: px, y: py, series: "right" })
-                  setHoveredPointKey(key)
-                  onHoverIndexChange?.(index)
-                }}
-                onMouseLeave={() => {
-                  setHovered(null)
-                  setHoveredPointKey(null)
-                  onHoverIndexChange?.(null)
-                }}
               />
             </g>
           )
