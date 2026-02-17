@@ -11,7 +11,7 @@ and process metrics (area reduction, eccentricity, thickness reduction).
 - Pipe types: `CircleCircle`, `RectRect`, `SplineSpline`
 - Interactive transition cards with marker drag, axis locks, and fullscreen modal
 - Live metric charts with hover linkage to transition markers
-- Template-based workflow (`PROCESS`, `FINISH_3`, `FINISH_6`, `FINISH_8`)
+- Template-based workflow (JSON templates under `src/drawing_pipe/templates/data/`)
 
 ## Screenshot
 
@@ -122,6 +122,7 @@ uv run pytest tests/test_process.py -k "circle and reduction" -q
 - `src/drawing_pipe/core/shapes.py`: `Circle`, `Rect`, `CubicSplineShape`
 - `src/drawing_pipe/core/pipes.py`: pipe types and derived properties
 - `src/drawing_pipe/core/process.py`: `ProcessAnalysis`
+- `src/drawing_pipe/templates/data/*.json`: one template per JSON file
 - Metrics payload fields:
   - `area_reductions`
   - `eccentricity_diffs`

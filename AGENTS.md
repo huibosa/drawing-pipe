@@ -103,6 +103,7 @@ cd frontend && bun run test -- -t "name fragment"
 - `src/drawing_pipe/api/domain.py` - payload/domain conversion.
 - `src/drawing_pipe/api/schemas.py` - API models.
 - `src/drawing_pipe/core/` - geometry/process domain logic.
+- `src/drawing_pipe/templates/data/*.json` - template data files (one template per file).
 - `frontend/src/app/App.tsx` - app state orchestration.
 - `frontend/src/features/transitions/TransitionCard.tsx` - transition plot + drag.
 - `frontend/src/features/metrics/MetricLineChart.tsx` - metric charts.
