@@ -12,6 +12,7 @@ and process metrics (area reduction, eccentricity, thickness reduction).
 - Interactive transition cards with marker drag, axis locks, and fullscreen modal
 - Live metric charts with hover linkage to transition markers
 - Template-based workflow (JSON templates under `src/drawing_pipe/templates/data/`)
+- Template import/export in sidebar (JSON)
 
 ## Screenshot
 
@@ -31,15 +32,17 @@ drawing_pipe/
 ├── backend/                     # Runtime entrypoint (uvicorn target)
 ├── frontend/                    # React/Vite app
 ├── src/drawing_pipe/
-│   ├── api/                     # FastAPI app, schemas, domain conversion
-│   └── core/                    # Geometry/domain logic
+│   ├── api/                     # FastAPI app, routers, services, schemas
+│   ├── core/                    # Geometry/domain logic
+│   └── templates/               # JSON template data + loader package
+├── docs/                        # Prompt/docs assets
 ├── images/
 └── AGENTS.md
 ```
 
 ## Prerequisites
 
-- Python 3.13+
+- Python 3.14+
 - `uv`
 - `bun`
 
@@ -85,6 +88,12 @@ ruff format .
 uv run python -m py_compile backend/main.py src/drawing_pipe/api/app.py src/drawing_pipe/api/domain.py
 ```
 
+Optional deeper backend compile check:
+
+```bash
+uv run python -m py_compile src/drawing_pipe/api/template_repository.py src/drawing_pipe/api/routers/health.py src/drawing_pipe/api/routers/templates.py src/drawing_pipe/api/routers/analyze.py src/drawing_pipe/api/services/template_service.py src/drawing_pipe/api/services/analysis_service.py
+```
+
 Frontend:
 
 ```bash
@@ -122,6 +131,8 @@ uv run pytest tests/test_process.py -k "circle and reduction" -q
 - `src/drawing_pipe/core/shapes.py`: `Circle`, `Rect`, `CubicSplineShape`
 - `src/drawing_pipe/core/pipes.py`: pipe types and derived properties
 - `src/drawing_pipe/core/process.py`: `ProcessAnalysis`
+- `src/drawing_pipe/api/routers/`: endpoint handlers (`health`, `templates`, `analyze`)
+- `src/drawing_pipe/api/services/`: API orchestration services
 - `src/drawing_pipe/templates/data/*.json`: one template per JSON file
 - Metrics payload fields:
   - `area_reductions`
