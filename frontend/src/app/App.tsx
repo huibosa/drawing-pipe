@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { DualAxisMetricChart } from "../features/metrics/DualAxisMetricChart"
 import { MetricLineChart } from "../features/metrics/MetricLineChart"
 import { TransitionCard } from "../features/transitions/TransitionCard"
 import { analyzeProfile, fetchTemplates } from "../shared/api/client"
@@ -790,12 +791,8 @@ function App(): JSX.Element {
     })
   }
 
-  const areaSeries = metrics
-    ? [{ name: t(locale, "area"), values: metrics.area_reductions, color: "#174a95" }]
-    : []
-  const eccSeries = metrics
-    ? [{ name: t(locale, "ecc"), values: metrics.eccentricity_diffs, color: "#0c8a61" }]
-    : []
+  const areaValues = metrics?.area_reductions ?? []
+  const eccValues = metrics?.eccentricity_diffs ?? []
   const thickSeries = thicknessSeries(metrics)
   const pipeTypeLabelByOption: Record<PipeType, string> = {
     CircleCircle: t(locale, "pipeTypeCircleCircle"),
@@ -891,10 +888,14 @@ function App(): JSX.Element {
         </div>
 
         <section className="metrics-sidebar">
-          <MetricLineChart
-            title={t(locale, "areaReductionRate")}
-            series={areaSeries}
-            valueFormatter={percent1}
+          <DualAxisMetricChart
+            title={`${t(locale, "areaReductionRate")} / ${t(locale, "eccentricity")}`}
+            leftLabel={t(locale, "areaReductionRate")}
+            rightLabel={t(locale, "eccentricity")}
+            leftValues={areaValues}
+            rightValues={eccValues}
+            leftFormatter={percent1}
+            rightFormatter={(value) => `${decimal2(value)} mm`}
             onHoverIndexChange={setHoveredTransitionIndex}
             emptyText={t(locale, "notEnoughData")}
           />
@@ -913,13 +914,6 @@ function App(): JSX.Element {
                 markerIndex: point.seriesIndex,
               })
             }}
-            emptyText={t(locale, "notEnoughData")}
-          />
-          <MetricLineChart
-            title={t(locale, "eccentricity")}
-            series={eccSeries}
-            valueFormatter={decimal2}
-            onHoverIndexChange={setHoveredTransitionIndex}
             emptyText={t(locale, "notEnoughData")}
           />
           <p className={`analysis-status${isAnalyzing ? " visible" : ""}`}>{t(locale, "analyzing")}</p>
