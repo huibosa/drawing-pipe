@@ -588,6 +588,8 @@ function App(): JSX.Element {
   const [expandedTransitionIndex, setExpandedTransitionIndex] = useState<number | null>(null)
   const [hoveredPointInput, setHoveredPointInput] = useState<HoveredPointInput | null>(null)
   const [hoveredThicknessPoint, setHoveredThicknessPoint] = useState<HoveredThicknessPoint | null>(null)
+  const [hoveredTransitionMarkerPoint, setHoveredTransitionMarkerPoint] =
+    useState<HoveredThicknessPoint | null>(null)
   const [inputLocks, setInputLocks] = useState<InputLockMap>(() => {
     try {
       const stored = window.localStorage.getItem(INPUT_LOCKS_STORAGE_KEY)
@@ -1008,6 +1010,20 @@ function App(): JSX.Element {
           draggingMarkerRef.current = false
           scheduleAnalyze(pipesRef.current, true)
         }}
+        onMarkerHoverChange={(marker) => {
+          if (!marker || marker.kind !== "shape") {
+            setHoveredTransitionMarkerPoint(null)
+            return
+          }
+          if (marker.markerIndex < 0 || marker.markerIndex > 4) {
+            setHoveredTransitionMarkerPoint(null)
+            return
+          }
+          setHoveredTransitionMarkerPoint({
+            transitionIndex: index,
+            markerIndex: marker.markerIndex,
+          })
+        }}
         showExpandButton={showExpandButton}
         onExpand={() => setExpandedTransitionIndex(index)}
       />
@@ -1044,6 +1060,14 @@ function App(): JSX.Element {
             title={t(locale, "thicknessReductionRate")}
             series={thickSeries}
             valueFormatter={percent1}
+            externalHoverPoint={
+              hoveredTransitionMarkerPoint
+                ? {
+                    pointIndex: hoveredTransitionMarkerPoint.transitionIndex,
+                    seriesIndex: hoveredTransitionMarkerPoint.markerIndex,
+                  }
+                : null
+            }
             onHoverIndexChange={setHoveredTransitionIndex}
             onHoverPointChange={(point) => {
               if (!point) {

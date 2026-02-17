@@ -11,18 +11,8 @@ type TransitionCardProps = {
   bounds: Bounds
   showMarkers: boolean
   markersDraggable: boolean
-  canDragMarker?: (marker: {
-    side: "left" | "right"
-    kind: "shape" | "center"
-    shapeKey: "outer" | "inner"
-    markerIndex: number
-  }) => boolean
-  markerDragAxes?: (marker: {
-    side: "left" | "right"
-    kind: "shape" | "center"
-    shapeKey: "outer" | "inner"
-    markerIndex: number
-  }) => { allowX: boolean; allowY: boolean }
+  canDragMarker?: (marker: MarkerTarget) => boolean
+  markerDragAxes?: (marker: MarkerTarget) => { allowX: boolean; allowY: boolean }
   centerDragAxes?: (side: "left" | "right") => {
     outer: { allowX: boolean; allowY: boolean }
     inner: { allowX: boolean; allowY: boolean }
@@ -44,8 +34,16 @@ type TransitionCardProps = {
   onCardMouseLeave?: () => void
   onMarkerDragStart?: () => void
   onMarkerDragEnd?: () => void
+  onMarkerHoverChange?: (marker: MarkerTarget | null) => void
   onExpand?: () => void
   showExpandButton?: boolean
+}
+
+type MarkerTarget = {
+  side: "left" | "right"
+  kind: "shape" | "center"
+  shapeKey: "outer" | "inner"
+  markerIndex: number
 }
 
 const SIZE = 260
@@ -67,12 +65,7 @@ type MarkerMeta = {
   point: [number, number]
 }
 
-type ActiveMarker = {
-  side: "left" | "right"
-  kind: "shape" | "center"
-  shapeKey: "outer" | "inner"
-  markerIndex: number
-}
+type ActiveMarker = MarkerTarget
 
 type Viewport = {
   scale: number
@@ -347,6 +340,7 @@ export function TransitionCard({
   onCardMouseLeave,
   onMarkerDragStart,
   onMarkerDragEnd,
+  onMarkerHoverChange,
   onExpand,
   showExpandButton = false,
 }: TransitionCardProps): JSX.Element {
@@ -477,6 +471,22 @@ export function TransitionCard({
   const markerIsDraggable = (marker: MarkerMeta): boolean =>
     markersDraggable && (!canDragMarker || canDragMarker(marker))
 
+  const reportMarkerHover = (marker: MarkerMeta | null) => {
+    if (!onMarkerHoverChange) {
+      return
+    }
+    if (!marker) {
+      onMarkerHoverChange(null)
+      return
+    }
+    onMarkerHoverChange({
+      side: marker.side,
+      kind: marker.kind,
+      shapeKey: marker.shapeKey,
+      markerIndex: marker.markerIndex,
+    })
+  }
+
   let nearestDraggableMarkerKey: string | null = null
   if (pointerLocal) {
     let bestDistanceSq = PROXIMITY_HOVER_PX * PROXIMITY_HOVER_PX
@@ -547,7 +557,10 @@ export function TransitionCard({
           const localY = ((event.clientY - rect.top) / rect.height) * SIZE
           setPointerLocal([localX, localY])
         }}
-        onPointerLeave={() => setPointerLocal(null)}
+        onPointerLeave={() => {
+          setPointerLocal(null)
+          reportMarkerHover(null)
+        }}
         onPointerUp={() => {
           if (draggingPointerId.current !== null) {
             svgRef.current?.releasePointerCapture(draggingPointerId.current)
@@ -555,6 +568,7 @@ export function TransitionCard({
             onMarkerDragEnd?.()
           }
           setActiveMarker(null)
+          reportMarkerHover(null)
         }}
         onPointerCancel={() => {
           if (draggingPointerId.current !== null) {
@@ -563,6 +577,7 @@ export function TransitionCard({
             onMarkerDragEnd?.()
           }
           setActiveMarker(null)
+          reportMarkerHover(null)
         }}
       >
         {leftEmphasized ? (
@@ -642,7 +657,12 @@ export function TransitionCard({
               const crossHalfSize = markerRadius * 0.82
               const crossHovered = inputHovered || thicknessHovered
               return (
-                <g key={marker.key} style={{ cursor: "default" }}>
+                <g
+                  key={marker.key}
+                  style={{ cursor: "default" }}
+                  onPointerEnter={() => reportMarkerHover(marker)}
+                  onPointerLeave={() => reportMarkerHover(null)}
+                >
                   {crossHovered ? (
                     <>
                       <line

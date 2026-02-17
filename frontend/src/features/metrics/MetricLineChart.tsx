@@ -14,6 +14,7 @@ type MetricLineChartProps = {
   onHoverPointChange?:
     | ((point: { pointIndex: number; seriesIndex: number; seriesName: string } | null) => void)
     | undefined
+  externalHoverPoint?: { pointIndex: number; seriesIndex: number } | null
   emptyText?: string
 }
 
@@ -54,6 +55,7 @@ export function MetricLineChart({
   valueFormatter,
   onHoverIndexChange,
   onHoverPointChange,
+  externalHoverPoint = null,
   emptyText = "Not enough data",
 }: MetricLineChartProps): JSX.Element {
   const [hovered, setHovered] = useState<HoverPoint | null>(null)
@@ -111,6 +113,32 @@ export function MetricLineChart({
       }
     })
   )
+
+  const externalHover =
+    hovered === null && externalHoverPoint
+      ? (() => {
+          const matchedPoint = plotPoints.find(
+            (point) =>
+              point.transitionIndex === externalHoverPoint.pointIndex &&
+              point.seriesIndex === externalHoverPoint.seriesIndex
+          )
+          if (!matchedPoint) {
+            return null
+          }
+          return {
+            x: matchedPoint.x,
+            y: matchedPoint.y,
+            label: matchedPoint.label,
+            color: matchedPoint.color,
+            transitionIndex: matchedPoint.transitionIndex,
+            pointKey: matchedPoint.key,
+            seriesIndex: matchedPoint.seriesIndex,
+            seriesName: matchedPoint.seriesName,
+          }
+        })()
+      : null
+  const activeHover = hovered ?? externalHover
+  const activeHoveredPointKey = activeHover?.pointKey ?? null
 
   const updateHoverFromPointer = (clientX: number, clientY: number, element: SVGSVGElement) => {
     const rect = element.getBoundingClientRect()
@@ -230,13 +258,13 @@ export function MetricLineChart({
           )
         })}
 
-        {hovered ? (
+        {activeHover ? (
           <line
-            x1={x(hovered.transitionIndex)}
+            x1={x(activeHover.transitionIndex)}
             y1={PAD_TOP}
-            x2={x(hovered.transitionIndex)}
+            x2={x(activeHover.transitionIndex)}
             y2={HEIGHT - PAD_BOTTOM}
-            stroke={hovered.color}
+            stroke={activeHover.color}
             strokeWidth={1}
             strokeDasharray="4 3"
             strokeOpacity={0.45}
@@ -278,10 +306,10 @@ export function MetricLineChart({
                   <circle
                     cx={px}
                     cy={py}
-                    r={hoveredPointKey === `${s.name}-${index}` ? MARKER_HOVER_RADIUS : MARKER_RADIUS}
+                    r={activeHoveredPointKey === `${s.name}-${index}` ? MARKER_HOVER_RADIUS : MARKER_RADIUS}
                     fill="#ffffff"
                     stroke={s.color}
-                    strokeWidth={hoveredPointKey === `${s.name}-${index}` ? 1.8 : 1}
+                    strokeWidth={activeHoveredPointKey === `${s.name}-${index}` ? 1.8 : 1}
                     style={{ transition: "r 120ms ease, stroke-width 120ms ease" }}
                   />
                 </g>
