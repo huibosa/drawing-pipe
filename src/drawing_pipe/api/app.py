@@ -5,9 +5,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from drawing_pipe.api import domain
-from drawing_pipe.api.schemas import AnalyzeResponse, ProfilePayload, TemplatesResponse
-from drawing_pipe.core.process import ProcessAnalysis
+from drawing_pipe.api.routers import analyze, health, templates
 
 
 def _allowed_origins() -> list[str]:
@@ -31,23 +29,9 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    @app.get("/health")
-    def health() -> dict[str, str]:
-        return {"status": "ok"}
-
-    @app.get("/api/templates", response_model=TemplatesResponse)
-    def list_templates() -> TemplatesResponse:
-        return TemplatesResponse(templates=domain.load_templates())
-
-    @app.post("/api/analyze", response_model=AnalyzeResponse)
-    def analyze_profile(profile: ProfilePayload) -> AnalyzeResponse:
-        pipes = [domain.pipe_from_payload(payload) for payload in profile.pipes]
-        analysis = ProcessAnalysis(pipes)
-        return AnalyzeResponse(
-            area_reductions=analysis.area_reductions,
-            eccentricity_diffs=analysis.eccentricity_diffs,
-            thickness_reductions=analysis.thickness_reductions.tolist(),
-        )
+    app.include_router(health.router)
+    app.include_router(templates.router)
+    app.include_router(analyze.router)
 
     return app
 
