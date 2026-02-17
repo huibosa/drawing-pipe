@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ChangeEvent } from "react"
 import { DualAxisMetricChart } from "../features/metrics/DualAxisMetricChart"
 import { MetricLineChart } from "../features/metrics/MetricLineChart"
 import { TransitionCard } from "../features/transitions/TransitionCard"
@@ -42,6 +42,12 @@ type MarkerLockTarget = {
 type MarkerDragAxes = {
   allowX: boolean
   allowY: boolean
+}
+
+type ImportedTemplateFile = {
+  name?: unknown
+  version?: unknown
+  pipes?: unknown
 }
 
 type CenterShapeDragAxes = {
@@ -108,6 +114,85 @@ function lockEntriesForShape(shape: Shape): LockEntry[] {
 
 function lockKeysForShape(pipeIndex: number, shapeKey: ShapeKey, shape: Shape): string[] {
   return lockEntriesForShape(shape).map((entry) => lockKey(pipeIndex, shapeKey, entry.target, entry.axis))
+}
+
+function isPointTuple(value: unknown): value is [number, number] {
+  return (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    typeof value[0] === "number" &&
+    Number.isFinite(value[0]) &&
+    typeof value[1] === "number" &&
+    Number.isFinite(value[1])
+  )
+}
+
+function isShape(value: unknown): value is Shape {
+  if (!value || typeof value !== "object") {
+    return false
+  }
+  const shape = value as Partial<Shape>
+  if (!isPointTuple(shape.origin)) {
+    return false
+  }
+
+  if (shape.shape_type === "Circle") {
+    return typeof shape.diameter === "number" && Number.isFinite(shape.diameter) && shape.diameter > 0
+  }
+  if (shape.shape_type === "Rect") {
+    return (
+      typeof shape.length === "number" &&
+      Number.isFinite(shape.length) &&
+      shape.length > 0 &&
+      typeof shape.width === "number" &&
+      Number.isFinite(shape.width) &&
+      shape.width > 0 &&
+      typeof shape.fillet_radius === "number" &&
+      Number.isFinite(shape.fillet_radius) &&
+      shape.fillet_radius > 0
+    )
+  }
+  if (shape.shape_type === "CubicSplineShape") {
+    return isPointTuple(shape.v1) && isPointTuple(shape.v2) && isPointTuple(shape.v3)
+  }
+  return false
+}
+
+function isPipe(value: unknown): value is Pipe {
+  if (!value || typeof value !== "object") {
+    return false
+  }
+  const pipe = value as Partial<Pipe>
+  return (
+    (pipe.pipe_type === "CircleCircle" || pipe.pipe_type === "RectRect" || pipe.pipe_type === "SplineSpline") &&
+    isShape(pipe.outer) &&
+    isShape(pipe.inner)
+  )
+}
+
+function toImportedTemplate(raw: unknown): { baseName: string; pipes: Pipe[] } | null {
+  if (!raw || typeof raw !== "object") {
+    return null
+  }
+  const parsed = raw as ImportedTemplateFile
+  if (!Array.isArray(parsed.pipes) || !parsed.pipes.every((pipe) => isPipe(pipe))) {
+    return null
+  }
+  const baseName = typeof parsed.name === "string" && parsed.name.trim() ? parsed.name.trim() : "User Process"
+  return { baseName, pipes: parsed.pipes }
+}
+
+function uniqueImportedTemplateName(baseName: string, existing: string[]): string {
+  const seed = baseName.trim() || "User Process"
+  const occupied = new Set(existing)
+  let index = 1
+  while (true) {
+    const candidate = `${seed} (Imported ${index})`
+    if (!occupied.has(candidate)) {
+      return candidate
+    }
+    index += 1
+  }
 }
 
 function snapStep(value: number, step = 0.05): number {
@@ -516,6 +601,7 @@ function App(): JSX.Element {
   const analyzeRequestSeqRef = useRef(0)
   const pipesRef = useRef<Pipe[]>([])
   const draggingMarkerRef = useRef(false)
+  const importFileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     window.localStorage.setItem(LOCALE_STORAGE_KEY, locale)
@@ -683,6 +769,61 @@ function App(): JSX.Element {
     setPipes(nextPipes)
     setInputLocks(buildDefaultLocks(nextPipes))
     setViewBounds(computeBounds(nextPipes, padding))
+  }
+
+  const handleExportTemplate = () => {
+    if (pipes.length === 0) {
+      return
+    }
+
+    const payload = {
+      name: templateName || "User Process",
+      version: 1,
+      pipes,
+    }
+    const json = JSON.stringify(payload, null, 2)
+    const blob = new Blob([json], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement("a")
+    const normalizedName = (templateName || "user-process").toLowerCase().replace(/[^a-z0-9]+/g, "-")
+    const stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15)
+    anchor.href = url
+    anchor.download = `template-${normalizedName}-${stamp}.json`
+    document.body.appendChild(anchor)
+    anchor.click()
+    document.body.removeChild(anchor)
+    URL.revokeObjectURL(url)
+  }
+
+  const handleImportTemplate = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) {
+      return
+    }
+
+    try {
+      const raw = JSON.parse(await file.text()) as unknown
+      const imported = toImportedTemplate(raw)
+      if (!imported) {
+        setError(t(locale, "invalidTemplateFile"))
+        return
+      }
+
+      const importedName = uniqueImportedTemplateName(imported.baseName, Object.keys(templates))
+      const importedPipes = imported.pipes.map(duplicatePipe)
+      setTemplates((prev) => ({ ...prev, [importedName]: importedPipes }))
+      setTemplateName(importedName)
+      setPipes(importedPipes)
+      setInputLocks(buildDefaultLocks(importedPipes))
+      setViewBounds(computeBounds(importedPipes, padding))
+      setError("")
+    } catch {
+      setError(t(locale, "invalidTemplateFile"))
+    } finally {
+      if (importFileInputRef.current) {
+        importFileInputRef.current.value = ""
+      }
+    }
   }
 
   useEffect(() => {
@@ -949,6 +1090,34 @@ function App(): JSX.Element {
           >
             {t(locale, "reload")}
           </button>
+          <button
+            type="button"
+            className="template-refresh"
+            onClick={handleExportTemplate}
+            disabled={pipes.length === 0}
+            aria-label={t(locale, "exportTemplate")}
+            title={t(locale, "exportTemplate")}
+          >
+            {t(locale, "export")}
+          </button>
+          <button
+            type="button"
+            className="template-refresh"
+            onClick={() => importFileInputRef.current?.click()}
+            aria-label={t(locale, "importTemplate")}
+            title={t(locale, "importTemplate")}
+          >
+            {t(locale, "import")}
+          </button>
+          <input
+            ref={importFileInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={(event) => {
+              void handleImportTemplate(event)
+            }}
+            style={{ display: "none" }}
+          />
         </div>
 
         <label className="checkbox-row">

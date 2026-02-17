@@ -132,7 +132,7 @@ select:focus-visible {
 
 .template-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto auto;
   gap: 8px;
   align-items: center;
 }
