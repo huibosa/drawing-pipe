@@ -96,8 +96,17 @@ export function DualAxisMetricChart({
   const leftPoints = leftValues.map((v, i) => [x(i), yLeft(v)] as [number, number])
   const rightPoints = rightValues.map((v, i) => [x(i), yRight(v)] as [number, number])
 
-  const tooltipWidth = 134
-  const tooltipHeight = 42
+  const hoveredValueText =
+    hovered &&
+    (hovered.series === "left"
+      ? hovered.index < leftValues.length
+        ? leftFormatter(leftValues[hovered.index])
+        : "-"
+      : hovered.index < rightValues.length
+        ? rightFormatter(rightValues[hovered.index])
+        : "-")
+  const tooltipWidth = Math.max(76, (hoveredValueText?.length ?? 1) * 7 + 16)
+  const tooltipHeight = 24
   const tooltipX = hovered
     ? Math.min(Math.max(hovered.x + 10, PAD_LEFT), WIDTH - tooltipWidth - PAD_RIGHT)
     : 0
@@ -295,10 +304,7 @@ export function DualAxisMetricChart({
           <g pointerEvents="none">
             <rect x={tooltipX} y={tooltipY} width={tooltipWidth} height={tooltipHeight} rx={6} fill="#0f172a" fillOpacity={0.92} />
             <text x={tooltipX + 8} y={tooltipY + 16} fontSize="12" fill="#f8fafc">
-              {leftLabel}: {hovered.index < leftValues.length ? leftFormatter(leftValues[hovered.index]) : "-"}
-            </text>
-            <text x={tooltipX + 8} y={tooltipY + 31} fontSize="12" fill="#f8fafc">
-              {rightLabel}: {hovered.index < rightValues.length ? rightFormatter(rightValues[hovered.index]) : "-"}
+              {hoveredValueText}
             </text>
           </g>
         ) : null}

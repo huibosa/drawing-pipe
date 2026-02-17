@@ -895,7 +895,7 @@ function App(): JSX.Element {
             leftValues={areaValues}
             rightValues={eccValues}
             leftFormatter={percent1}
-            rightFormatter={(value) => `${decimal2(value)} mm`}
+            rightFormatter={(value) => `${decimal2(value)}mm`}
             onHoverIndexChange={setHoveredTransitionIndex}
             emptyText={t(locale, "notEnoughData")}
           />
