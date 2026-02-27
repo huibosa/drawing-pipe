@@ -37,6 +37,7 @@ type TransitionCardProps = {
   onMarkerHoverChange?: (marker: MarkerTarget | null) => void
   onExpand?: () => void
   showExpandButton?: boolean
+  size?: number
 }
 
 type MarkerTarget = {
@@ -46,7 +47,7 @@ type MarkerTarget = {
   markerIndex: number
 }
 
-const SIZE = 260
+const DEFAULT_SIZE = 400
 const PROXIMITY_HOVER_PX = 10
 const EMPHASIS_SHADOW =
   "drop-shadow(0 0 7px rgba(37, 99, 235, 0.35)) drop-shadow(0 0 3px rgba(56, 189, 248, 0.3))"
@@ -98,15 +99,15 @@ function markerMatchesHoveredInput(
   return marker.markerIndex === 2
 }
 
-function viewportFromBounds(bounds: Bounds): Viewport {
+function viewportFromBounds(bounds: Bounds, size: number): Viewport {
   const width = Math.max(bounds.maxX - bounds.minX, 1)
   const height = Math.max(bounds.maxY - bounds.minY, 1)
   const span = Math.max(width, height)
-  const scale = SIZE / span
+  const scale = size / span
   const centerX = (bounds.minX + bounds.maxX) / 2
   const centerY = (bounds.minY + bounds.maxY) / 2
-  const offsetX = SIZE / 2 - centerX * scale
-  const offsetY = SIZE / 2 + centerY * scale
+  const offsetX = size / 2 - centerX * scale
+  const offsetY = size / 2 + centerY * scale
   return { scale, offsetX, offsetY }
 }
 
@@ -343,12 +344,13 @@ export function TransitionCard({
   onMarkerHoverChange,
   onExpand,
   showExpandButton = false,
+  size = DEFAULT_SIZE,
 }: TransitionCardProps): JSX.Element {
   const svgRef = useRef<SVGSVGElement | null>(null)
   const draggingPointerId = useRef<number | null>(null)
   const [activeMarker, setActiveMarker] = useState<ActiveMarker | null>(null)
   const [pointerLocal, setPointerLocal] = useState<[number, number] | null>(null)
-  const viewport = viewportFromBounds(bounds)
+  const viewport = viewportFromBounds(bounds, size)
 
   const allMarkers: MarkerMeta[] = [
     ...markerPoints(leftPipe, "outer").map((point, markerIndex) => ({
@@ -409,8 +411,8 @@ export function TransitionCard({
     if (rect.width <= 0 || rect.height <= 0) {
       return
     }
-    const localX = ((clientX - rect.left) / rect.width) * SIZE
-    const localY = ((clientY - rect.top) / rect.height) * SIZE
+    const localX = ((clientX - rect.left) / rect.width) * size
+    const localY = ((clientY - rect.top) / rect.height) * size
     const world = toWorld([localX, localY], viewport)
 
     const currentMarker = allMarkers.find(
@@ -537,15 +539,20 @@ export function TransitionCard({
             aria-label="Expand transition plot"
             title="Expand transition plot"
           >
-            ⛶
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <polyline points="9 21 3 21 3 15"></polyline>
+              <line x1="21" y1="3" x2="14" y2="10"></line>
+              <line x1="3" y1="21" x2="10" y2="14"></line>
+            </svg>
           </button>
         ) : null}
       </div>
       <svg
         ref={svgRef}
-        width={SIZE}
-        height={SIZE}
-        viewBox={`0 0 ${SIZE} ${SIZE}`}
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
         className="transition-svg"
         onPointerMove={(event) => {
           updateFromPointer(event.clientX, event.clientY)
@@ -553,8 +560,8 @@ export function TransitionCard({
           if (!rect || rect.width <= 0 || rect.height <= 0) {
             return
           }
-          const localX = ((event.clientX - rect.left) / rect.width) * SIZE
-          const localY = ((event.clientY - rect.top) / rect.height) * SIZE
+          const localX = ((event.clientX - rect.left) / rect.width) * size
+          const localY = ((event.clientY - rect.top) / rect.height) * size
           setPointerLocal([localX, localY])
         }}
         onPointerLeave={() => {
@@ -600,43 +607,43 @@ export function TransitionCard({
         ) : null}
         <path
           d={shapePath(leftPipe, "outer", viewport)}
-          stroke="#174a95"
-          strokeWidth={leftEmphasized ? plotLineWidth * 1.35 : hasSideEmphasis ? plotLineWidth * 0.85 : plotLineWidth}
+          stroke="#2563eb"
+          strokeWidth={leftEmphasized ? plotLineWidth * 1.5 : hasSideEmphasis ? plotLineWidth * 0.8 : plotLineWidth}
           strokeOpacity={leftStrokeOpacity}
           fill="none"
         />
         <path
           d={shapePath(leftPipe, "inner", viewport)}
-          stroke="#174a95"
+          stroke="#2563eb"
           strokeWidth={
-            leftEmphasized ? plotLineWidth * 1.2 : hasSideEmphasis ? plotLineWidth * 0.78 : plotLineWidth * 0.9
+            leftEmphasized ? plotLineWidth * 1.2 : hasSideEmphasis ? plotLineWidth * 0.7 : plotLineWidth * 0.9
           }
           strokeOpacity={leftStrokeOpacity}
           fill="none"
         />
         <path
           d={shapePath(rightPipe, "outer", viewport)}
-          stroke="#dc2626"
+          stroke="#ef4444"
           strokeWidth={
-            rightEmphasized ? plotLineWidth * 1.35 : hasSideEmphasis ? plotLineWidth * 0.85 : plotLineWidth
+            rightEmphasized ? plotLineWidth * 1.5 : hasSideEmphasis ? plotLineWidth * 0.8 : plotLineWidth
           }
           strokeOpacity={rightStrokeOpacity}
           fill="none"
-          strokeDasharray="6 4"
+          strokeDasharray="4 4"
         />
         <path
           d={shapePath(rightPipe, "inner", viewport)}
-          stroke="#dc2626"
+          stroke="#ef4444"
           strokeWidth={
             rightEmphasized
               ? plotLineWidth * 1.2
               : hasSideEmphasis
-                ? plotLineWidth * 0.78
+                ? plotLineWidth * 0.7
                 : plotLineWidth * 0.9
           }
           strokeOpacity={rightStrokeOpacity}
           fill="none"
-          strokeDasharray="6 4"
+          strokeDasharray="4 4"
         />
         {showMarkers
           ? allMarkers.map((marker) => {
@@ -648,13 +655,13 @@ export function TransitionCard({
                 marker.markerIndex === hoveredThicknessMarkerIndex
               const proximityHovered = marker.key === nearestDraggableMarkerKey
               const markerRadius = inputHovered
-                ? markerSize * 2.1
+                ? markerSize * 2.2
                 : thicknessHovered
-                  ? markerSize * 1.7
+                  ? markerSize * 1.8
                   : proximityHovered
                     ? markerSize * 1.6
                     : markerSize
-              const crossHalfSize = markerRadius * 0.82
+              const crossHalfSize = markerRadius * 0.85
               const crossHovered = inputHovered || thicknessHovered
               return (
                 <g
@@ -670,8 +677,8 @@ export function TransitionCard({
                         y1={y - crossHalfSize}
                         x2={x + crossHalfSize}
                         y2={y + crossHalfSize}
-                        stroke={marker.kind === "center" ? "#a16207" : "#dc2626"}
-                        strokeWidth={2.2}
+                        stroke={marker.kind === "center" ? "#eab308" : "#ef4444"}
+                        strokeWidth={2.5}
                         strokeLinecap="round"
                         onPointerDown={(event) => beginMarkerDrag(event, marker)}
                       />
@@ -680,15 +687,15 @@ export function TransitionCard({
                         y1={y + crossHalfSize}
                         x2={x + crossHalfSize}
                         y2={y - crossHalfSize}
-                        stroke={marker.kind === "center" ? "#a16207" : "#dc2626"}
-                        strokeWidth={2.2}
+                        stroke={marker.kind === "center" ? "#eab308" : "#ef4444"}
+                        strokeWidth={2.5}
                         strokeLinecap="round"
                         onPointerDown={(event) => beginMarkerDrag(event, marker)}
                       />
                       <circle
                         cx={x}
                         cy={y}
-                        r={markerRadius}
+                        r={markerRadius * 1.2}
                         fill="transparent"
                         onPointerDown={(event) => beginMarkerDrag(event, marker)}
                       />
@@ -699,8 +706,8 @@ export function TransitionCard({
                       cy={y}
                       r={markerRadius}
                       fill={marker.kind === "center" ? "#fef08a" : "#ffffff"}
-                      stroke={marker.kind === "center" ? "#a16207" : "#2b3340"}
-                      strokeWidth={1}
+                      stroke={marker.kind === "center" ? "#eab308" : "#334155"}
+                      strokeWidth={1.5}
                       onPointerDown={(event) => beginMarkerDrag(event, marker)}
                     />
                   )}

@@ -220,7 +220,7 @@ function thicknessSeries(metrics: AnalyzeResponse | null): { name: string; value
     return []
   }
 
-  const colors = ["#174a95", "#0c8a61", "#d95f02", "#9442a3", "#b45309"]
+  const colors = ["#2563eb", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899"]
   const count = metrics.thickness_reductions[0]?.length ?? 0
   return Array.from({ length: count }, (_, idx) => ({
     name: `p${idx + 1}`,
@@ -334,12 +334,12 @@ function PointFieldRow({
       />
       <button
         type="button"
-        className="lock-toggle"
+        className={`lock-toggle ${lockedX ? "locked" : "unlocked"}`}
         onClick={onToggleLockX}
         aria-label={`${label} x lock`}
         title={lockedX ? "Locked" : "Editable"}
       >
-        {lockedX ? "🔴" : "🟢"}
+        <span className="lock-indicator" />
       </button>
       <input
         className="field-input"
@@ -354,12 +354,12 @@ function PointFieldRow({
       />
       <button
         type="button"
-        className="lock-toggle"
+        className={`lock-toggle ${lockedY ? "locked" : "unlocked"}`}
         onClick={onToggleLockY}
         aria-label={`${label} y lock`}
         title={lockedY ? "Locked" : "Editable"}
       >
-        {lockedY ? "🔴" : "🟢"}
+        <span className="lock-indicator" />
       </button>
     </div>
   )
@@ -397,12 +397,12 @@ function ScalarFieldRow({
       />
       <button
         type="button"
-        className="lock-toggle"
+        className={`lock-toggle ${locked ? "locked" : "unlocked"}`}
         onClick={onToggleLock}
         aria-label={`${label} lock`}
         title={locked ? "Locked" : "Editable"}
       >
-        {locked ? "🔴" : "🟢"}
+        <span className="lock-indicator" />
       </button>
     </div>
   )
@@ -455,12 +455,12 @@ function ShapeEditor({
         <h4>{title}</h4>
         <button
           type="button"
-          className="lock-toggle"
+          className={`lock-toggle ${allLocked ? "locked" : "unlocked"}`}
           onClick={onToggleAllLocks}
           aria-label={`${title} lock all`}
           title={allLocked ? "Unlock all" : "Lock all"}
         >
-          {allLocked ? "🔴" : "🟢"}
+          <span className="lock-indicator" />
         </button>
       </div>
       <PointFieldRow
@@ -579,8 +579,8 @@ function App(): JSX.Element {
   const [showMarkers, setShowMarkers] = useState(true)
   const [enableTransitionMarkerDrag, setEnableTransitionMarkerDrag] = useState(true)
   const [padding, setPadding] = useState(0.01)
-  const [markerSize, setMarkerSize] = useState(2)
-  const [plotLineWidth, setPlotLineWidth] = useState(2.0)
+  const [markerSize, setMarkerSize] = useState(3.5)
+  const [plotLineWidth, setPlotLineWidth] = useState(2.5)
   const [viewBounds, setViewBounds] = useState<Bounds>(DEFAULT_BOUNDS)
   const [hoveredTransitionIndex, setHoveredTransitionIndex] = useState<number | null>(null)
   const [hoveredPipeIndex, setHoveredPipeIndex] = useState<number | null>(null)
@@ -943,7 +943,7 @@ function App(): JSX.Element {
     SplineSpline: t(locale, "pipeTypeSplineSpline"),
   }
 
-  const renderTransitionCard = (index: number, showExpandButton: boolean): JSX.Element | null => {
+  const renderTransitionCard = (index: number, showExpandButton: boolean, size?: number): JSX.Element | null => {
     const leftPipe = pipes[index]
     const rightPipe = pipes[index + 1]
     if (!leftPipe || !rightPipe) {
@@ -1026,6 +1026,7 @@ function App(): JSX.Element {
         }}
         showExpandButton={showExpandButton}
         onExpand={() => setExpandedTransitionIndex(index)}
+        size={size}
       />
     )
   }
@@ -1223,11 +1224,13 @@ function App(): JSX.Element {
 
       <main className="main-area">
         {pipes.length > 1 ? (
-          <section className="main-section">
-            <div className="transition-row">
-              {pipes.slice(0, -1).map((_, index) => renderTransitionCard(index, true))}
-            </div>
-          </section>
+          <div className="transition-section-scroll">
+            <section className="main-section">
+              <div className="transition-row">
+                {pipes.slice(0, -1).map((_, index) => renderTransitionCard(index, true))}
+              </div>
+            </section>
+          </div>
         ) : null}
 
         <div className="pipe-section-scroll">
@@ -1255,12 +1258,12 @@ function App(): JSX.Element {
                 <h2>{t(locale, "pipeTitle", { index: index + 1 })}</h2>
                 <button
                   type="button"
-                  className="lock-toggle"
+                  className={`lock-toggle ${pipeAllLocked ? "locked" : "unlocked"}`}
                   onClick={() => toggleBulkLocks(pipeLockKeys)}
                   aria-label={`Pipe ${index + 1} lock all`}
                   title={pipeAllLocked ? "Unlock all" : "Lock all"}
                 >
-                  {pipeAllLocked ? "🔴" : "🟢"}
+                  <span className="lock-indicator" />
                 </button>
               </div>
 
@@ -1389,7 +1392,7 @@ function App(): JSX.Element {
                   ✕
                 </button>
               </div>
-              {renderTransitionCard(expandedTransitionIndex, false)}
+              {renderTransitionCard(expandedTransitionIndex, false, 1000)}
             </div>
           </div>
         ) : null}

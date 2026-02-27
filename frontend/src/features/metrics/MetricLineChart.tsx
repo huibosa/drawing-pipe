@@ -18,9 +18,9 @@ type MetricLineChartProps = {
   emptyText?: string
 }
 
-const WIDTH = 360
-const HEIGHT = 180
-const PAD_LEFT = 52
+const WIDTH = 460
+const HEIGHT = 280
+const PAD_LEFT = 64
 const PAD_RIGHT = 12
 const PAD_TOP = 12
 const PAD_BOTTOM = 26
@@ -88,7 +88,7 @@ export function MetricLineChart({
     (valueFormatter ? valueFormatter(value) : value.toFixed(4))
 
   const tooltipText = hovered?.label ?? ""
-  const tooltipWidth = Math.max(88, tooltipText.length * 7 + 12)
+  const tooltipWidth = Math.max(88, tooltipText.length * 8 + 12)
   const tooltipHeight = 24
   const tooltipX = hovered
     ? Math.min(Math.max(hovered.x + 10, PAD_LEFT), WIDTH - tooltipWidth - PAD_RIGHT)
@@ -285,9 +285,9 @@ export function MetricLineChart({
               />
               <text
                 x={PAD_LEFT - 8}
-                y={py + 3}
+                y={py + 4}
                 textAnchor="end"
-                fontSize="10"
+                fontSize="14"
                 fill="#475569"
               >
                 {formatValue(tickValue)}
@@ -331,7 +331,7 @@ export function MetricLineChart({
               stroke={hovered.color}
               strokeWidth={1}
             />
-            <text x={tooltipX + 8} y={tooltipY + 16} fontSize="13" fill="#f8fafc">
+            <text x={tooltipX + 8} y={tooltipY + 16} fontSize="14" fill="#f8fafc">
               {tooltipText}
             </text>
           </g>

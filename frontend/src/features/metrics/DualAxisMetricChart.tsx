@@ -14,10 +14,10 @@ type DualAxisMetricChartProps = {
   emptyText?: string
 }
 
-const WIDTH = 360
-const HEIGHT = 180
-const PAD_LEFT = 52
-const PAD_RIGHT = 52
+const WIDTH = 460
+const HEIGHT = 280
+const PAD_LEFT = 64
+const PAD_RIGHT = 64
 const PAD_TOP = 12
 const PAD_BOTTOM = 26
 const MARKER_RADIUS = 2.8
@@ -57,8 +57,8 @@ export function DualAxisMetricChart({
   rightLabel,
   leftValues,
   rightValues,
-  leftColor = "#174a95",
-  rightColor = "#0c8a61",
+  leftColor = "#2563eb",
+  rightColor = "#10b981",
   leftFormatter = (value) => value.toFixed(4),
   rightFormatter = (value) => value.toFixed(4),
   onHoverIndexChange,
@@ -244,7 +244,7 @@ export function DualAxisMetricChart({
           return (
             <g key={`left-tick-${tickValue.toFixed(6)}`}>
               <line x1={PAD_LEFT - 5} y1={py} x2={PAD_LEFT} y2={py} stroke="#94a3b8" strokeWidth={1} />
-              <text x={PAD_LEFT - 8} y={py + 3} textAnchor="end" fontSize="10" fill="#475569">
+              <text x={PAD_LEFT - 8} y={py + 4} textAnchor="end" fontSize="14" fill="#475569">
                 {leftFormatter(tickValue)}
               </text>
             </g>
@@ -256,7 +256,7 @@ export function DualAxisMetricChart({
           return (
             <g key={`right-tick-${tickValue.toFixed(6)}`}>
               <line x1={WIDTH - PAD_RIGHT} y1={py} x2={WIDTH - PAD_RIGHT + 5} y2={py} stroke="#94a3b8" strokeWidth={1} />
-              <text x={WIDTH - PAD_RIGHT + 8} y={py + 3} textAnchor="start" fontSize="10" fill="#475569">
+              <text x={WIDTH - PAD_RIGHT + 8} y={py + 4} textAnchor="start" fontSize="14" fill="#475569">
                 {rightFormatter(tickValue)}
               </text>
             </g>
@@ -303,7 +303,7 @@ export function DualAxisMetricChart({
         {hovered ? (
           <g pointerEvents="none">
             <rect x={tooltipX} y={tooltipY} width={tooltipWidth} height={tooltipHeight} rx={6} fill="#0f172a" fillOpacity={0.92} />
-            <text x={tooltipX + 8} y={tooltipY + 16} fontSize="12" fill="#f8fafc">
+            <text x={tooltipX + 8} y={tooltipY + 16} fontSize="14" fill="#f8fafc">
               {hoveredValueText}
             </text>
           </g>
